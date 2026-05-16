@@ -1,0 +1,53 @@
+@page "/m"
+@layout ManagerLayout
+@inject IDataService Data
+
+<TopBar />
+<h1>À traiter</h1>
+<p class="sub">Tableau de bord manager</p>
+
+<NavLink class="card" href="m/team?filter=pending">
+    <div class="t">@_pendingAccounts comptes à valider</div>
+    <div class="m">@_pendingAccountNames</div>
+</NavLink>
+<NavLink class="card" href="m/events">
+    <div class="t">@_joinRequests demande(s) de participation</div>
+    <div class="m">À valider sur les events ouverts</div>
+</NavLink>
+<NavLink class="card" href="m/timesheets">
+    <div class="t">@_pendingTimesheets timesheet(s) à valider</div>
+    <div class="m">Reçues, en attente de validation</div>
+</NavLink>
+
+<div class="lab">Prochains events</div>
+@if (_upcoming.Count == 0) { <div class="card"><div class="m">Aucun event à venir</div></div> }
+@foreach (var e in _upcoming)
+{
+    <NavLink class="card glow" href="@($"m/events/{e.Id}")">
+        <div class="t">@e.Name</div>
+        <div class="m">@e.Date.Fmt() · @e.Venue</div>
+    </NavLink>
+}
+
+@code {
+    int _pendingAccounts, _joinRequests, _pendingTimesheets;
+    string _pendingAccountNames = "";
+    List<ServiceEvent> _upcoming = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var accs = await Data.GetAccountsAsync();
+        var pend = accs.Where(a => a.Status == AccountStatus.Pending).ToList();
+        _pendingAccounts = pend.Count;
+        _pendingAccountNames = pend.Count == 0 ? "Aucun" : string.Join(" · ", pend.Select(a => a.FullName));
+
+        var asgs = await Data.GetAssignmentsAsync();
+        _joinRequests = asgs.Count(a => a.Status == AssignmentStatus.PendingApproval);
+
+        var ts = await Data.GetTimesheetsAsync();
+        _pendingTimesheets = ts.Count(t => t.Status == TimesheetStatus.Sent);
+
+        _upcoming = (await Data.GetEventsAsync())
+            .Where(e => e.Status != EventStatus.Past).OrderBy(e => e.Date).Take(5).ToList();
+    }
+}

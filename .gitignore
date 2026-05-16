@@ -1,0 +1,11 @@
+# Brainstorming visual companion (local mockups, not versioned)
+.superpowers/
+
+# .NET build output
+bin/
+obj/
+publish/
+*.user
+
+# OS
+.DS_Store

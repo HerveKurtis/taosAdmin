@@ -1,0 +1,49 @@
+@page "/e/hours/{Id}"
+@layout EmployeeLayout
+@inject IDataService Data
+
+@if (_ts is null) { <TopBar ShowBack="true" Title="Timesheet" BackTo="e/hours" /><p class="sub">Introuvable.</p> }
+else
+{
+    <TopBar ShowBack="true" Title="Timesheet" BackTo="e/hours" />
+    <div class="card glow">
+        <div class="t">@_eventName</div>
+        <div class="m">Durée : @_ts.Duration.Fmt()</div>
+    </div>
+    <div class="field">Début <b>@_ts.EffectiveStart.Fmt()</b></div>
+    <div class="field">Fin <b>@_ts.EffectiveEnd.Fmt()</b></div>
+    <div class="field">Statut <b><span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span></b></div>
+
+    @if (_ts.Status == TimesheetStatus.Rejected)
+    {
+        <div class="card"><div class="t">Motif du refus</div>
+            <div class="m">@(_ts.RejectionReason ?? "Non précisé")</div></div>
+        <button class="btn primary" @onclick="Resend">Renvoyer la timesheet</button>
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    Timesheet? _ts;
+    string _eventName = "";
+
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load()
+    {
+        _ts = await Data.GetTimesheetAsync(Id);
+        if (_ts is null) return;
+        var asgs = await Data.GetAssignmentsAsync();
+        var asg = asgs.FirstOrDefault(a => a.Id == _ts.AssignmentId);
+        var ev = asg is null ? null : await Data.GetEventAsync(asg.EventId);
+        _eventName = ev?.Name ?? "Event";
+    }
+
+    async Task Resend()
+    {
+        _ts!.Status = TimesheetStatus.Sent;
+        _ts.SentAt = DateTime.Now;
+        _ts.RejectionReason = null;
+        await Data.UpdateTimesheetAsync(_ts);
+        await Load();
+    }
+}

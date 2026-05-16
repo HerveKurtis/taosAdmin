@@ -1,0 +1,38 @@
+@page "/e/hours"
+@layout EmployeeLayout
+@inject IDataService Data
+@inject AuthState Auth
+
+<TopBar />
+<h1>Mes heures</h1>
+
+@if (_rows.Count == 0)
+{
+    <div class="empty"><div class="ic">◷</div><div class="e-t">Aucune prestation</div>
+        <p>Tes timesheets apparaîtront ici.</p></div>
+}
+@foreach (var r in _rows)
+{
+    <NavLink class="card" href="@($"e/hours/{r.ts.Id}")">
+        <div class="t">@r.ev.Name</div>
+        <div class="m">@r.ev.Date.Fmt() · @r.ts.Duration.Fmt()
+            · <span class="@r.ts.Status.PillClass()">@r.ts.Status.StatusFr()</span></div>
+    </NavLink>
+}
+
+@code {
+    List<(Timesheet ts, ServiceEvent ev)> _rows = new();
+    protected override async Task OnInitializedAsync()
+    {
+        var u = Auth.CurrentUser!;
+        var asgs = await Data.GetAssignmentsForAccountAsync(u.Id);
+        var events = await Data.GetEventsAsync();
+        foreach (var a in asgs)
+        {
+            var ts = await Data.GetTimesheetForAssignmentAsync(a.Id);
+            var ev = events.FirstOrDefault(e => e.Id == a.EventId);
+            if (ts is not null && ev is not null) _rows.Add((ts, ev));
+        }
+        _rows = _rows.OrderByDescending(r => r.ev.Date).ToList();
+    }
+}

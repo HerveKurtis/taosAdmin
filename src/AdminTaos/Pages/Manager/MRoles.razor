@@ -1,0 +1,55 @@
+@page "/m/roles"
+@layout ManagerLayout
+@inject IDataService Data
+
+<TopBar ShowBack="true" Title="Rôles" BackTo="m/team" />
+<h1>Gérer les rôles</h1>
+
+@foreach (var r in _roles)
+{
+    <div class="card">
+        @if (_editId == r.Id)
+        {
+            <input @bind="_editName" />
+            <div class="row2" style="margin-top:8px">
+                <button class="btn ghost" @onclick="() => _editId=null">Annuler</button>
+                <button class="btn primary" @onclick="() => SaveEdit(r)">OK</button>
+            </div>
+        }
+        else
+        {
+            <div class="t">@r.Name</div>
+            <div class="row2" style="margin-top:8px">
+                <button class="btn ghost" @onclick="() => StartEdit(r)">Éditer</button>
+                <button class="btn danger" @onclick="() => Delete(r)">Supprimer</button>
+            </div>
+        }
+    </div>
+}
+
+<div class="lab">Nouveau rôle</div>
+<div class="field"><span>Nom</span><input @bind="_newName" /></div>
+<button class="btn primary" @onclick="Add">Ajouter le rôle</button>
+
+@code {
+    List<JobRole> _roles = new();
+    string _newName = "", _editName = "";
+    string? _editId;
+
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load() => _roles = await Data.GetJobRolesAsync();
+
+    async Task Add()
+    {
+        if (string.IsNullOrWhiteSpace(_newName)) return;
+        await Data.CreateJobRoleAsync(new JobRole { Name = _newName.Trim() });
+        _newName = ""; await Load();
+    }
+    void StartEdit(JobRole r) { _editId = r.Id; _editName = r.Name; }
+    async Task SaveEdit(JobRole r)
+    {
+        r.Name = _editName.Trim();
+        await Data.UpdateJobRoleAsync(r); _editId = null; await Load();
+    }
+    async Task Delete(JobRole r) { await Data.DeleteJobRoleAsync(r.Id); await Load(); }
+}

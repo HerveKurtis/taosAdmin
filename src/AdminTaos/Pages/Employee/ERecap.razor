@@ -1,0 +1,57 @@
+@page "/e/events/{Id}/recap"
+@layout EmployeeLayout
+@inject IDataService Data
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<TopBar ShowBack="true" Title="Prestation terminée" BackTo="e" />
+@if (_e is not null && _ts is not null)
+{
+    <div class="lab">Récapitulatif</div>
+    <div class="card glow">
+        <div class="t">@_e.Name</div>
+        <div class="m">@_e.Date.Fmt() · @RoleName</div>
+    </div>
+    <div class="chrono" style="font-size:34px">@_ts.Duration.Fmt()</div>
+    <div class="field">Début <b>@_ts.StartedAt.Fmt()</b></div>
+    <div class="field">Fin <b>@_ts.EndedAt.Fmt()</b></div>
+    <span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span>
+
+    @if (_ts.Status == TimesheetStatus.ToSend)
+    {
+        <button class="btn primary" style="margin-top:16px" @onclick="Send">Envoyer la timesheet</button>
+        <p class="m" style="text-align:center;margin-top:8px">Le manager la recevra pour validation.</p>
+    }
+    else
+    {
+        <p class="pill ok" style="margin-top:16px">Timesheet envoyée ✓</p>
+        <NavLink class="btn ghost" href="e/hours">Voir mes heures</NavLink>
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    ServiceEvent? _e;
+    Timesheet? _ts;
+    string RoleName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var u = Auth.CurrentUser!;
+        _e = await Data.GetEventAsync(Id);
+        var asg = (await Data.GetAssignmentsForAccountAsync(u.Id)).FirstOrDefault(a => a.EventId == Id);
+        if (asg is not null)
+        {
+            _ts = await Data.GetTimesheetForAssignmentAsync(asg.Id);
+            RoleName = (await Data.GetJobRolesAsync())
+                .FirstOrDefault(r => r.Id == asg.JobRoleId)?.Name ?? "";
+        }
+    }
+
+    async Task Send()
+    {
+        _ts!.Status = TimesheetStatus.Sent;
+        _ts.SentAt = DateTime.Now;
+        await Data.UpdateTimesheetAsync(_ts);
+    }
+}

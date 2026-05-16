@@ -9,3 +9,10 @@ publish/
 
 # OS
 .DS_Store
+
+# IDE / language-server caches
+*.lscache
+**/*.lscache
+
+# Claude Code workspace
+.claude/

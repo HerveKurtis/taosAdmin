@@ -1,0 +1,80 @@
+@page "/m/events/{Id}"
+@layout ManagerLayout
+@inject IDataService Data
+@inject NavigationManager Nav
+
+@if (_e is null) { <TopBar ShowBack="true" Title="Event" BackTo="m/events" /><p class="sub">Introuvable.</p> }
+else
+{
+    <TopBar ShowBack="true" Title="@_e.Name" BackTo="m/events" />
+    <div class="card glow">
+        <div class="t">@_e.Name</div>
+        <div class="m">@_e.Venue — @_e.Address<br/>@_e.Date.Fmt() · @_e.MeetingTime.Fmt() → @_e.ExpectedEndTime.Fmt()
+        @if(!string.IsNullOrWhiteSpace(_e.DressCode)){<text><br/>Tenue : @_e.DressCode</text>}
+        @if(!string.IsNullOrWhiteSpace(_e.OnSiteContact)){<text><br/>Contact : @_e.OnSiteContact</text>}</div>
+    </div>
+
+    <div class="lab">Effectif par rôle</div>
+    @foreach (var rn in _e.RoleNeeds)
+    {
+        var c = _confirmed.Count(a => a.JobRoleId == rn.JobRoleId);
+        <div class="card"><div class="t">@RoleName(rn.JobRoleId)</div>
+            <div class="m">@c / @rn.CountNeeded assigné(s) · @rn.HourlyRate €/h</div></div>
+    }
+
+    <div class="lab">Personnel assigné</div>
+    @if (_confirmed.Count == 0) { <div class="card"><div class="m">Personne pour l'instant</div></div> }
+    @foreach (var a in _confirmed)
+    {
+        <div class="card"><div class="t">@Name(a.AccountId)</div>
+            <div class="m">@RoleName(a.JobRoleId)</div></div>
+    }
+
+    @if (_requests.Count > 0)
+    {
+        <div class="lab">Demandes de participation</div>
+        @foreach (var a in _requests)
+        {
+            <div class="card">
+                <div class="t">@Name(a.AccountId)</div>
+                <div class="m">@RoleName(a.JobRoleId) · demande à rejoindre</div>
+                <div class="row2" style="margin-top:10px">
+                    <button class="btn danger" @onclick="() => Decide(a, false)">Refuser</button>
+                    <button class="btn primary" @onclick="() => Decide(a, true)">Accepter</button>
+                </div>
+            </div>
+        }
+    }
+
+    <NavLink class="btn ghost" href="@($"m/events/{_e.Id}/assign")">Assigner du personnel</NavLink>
+    <NavLink class="btn ghost" href="@($"m/events/{_e.Id}/edit")">Éditer l'event</NavLink>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    ServiceEvent? _e;
+    List<Assignment> _confirmed = new(), _requests = new();
+    Dictionary<string,string> _names = new(), _roles = new();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    async Task Load()
+    {
+        _e = await Data.GetEventAsync(Id);
+        _names = (await Data.GetAccountsAsync()).ToDictionary(a => a.Id, a => a.FullName);
+        _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
+        var asgs = await Data.GetAssignmentsForEventAsync(Id);
+        _confirmed = asgs.Where(a => a.Status == AssignmentStatus.Confirmed).ToList();
+        _requests  = asgs.Where(a => a.Status == AssignmentStatus.PendingApproval).ToList();
+    }
+
+    string Name(string id) => _names.GetValueOrDefault(id, "?");
+    string RoleName(string id) => _roles.GetValueOrDefault(id, "?");
+
+    async Task Decide(Assignment a, bool accept)
+    {
+        a.Status = accept ? AssignmentStatus.Confirmed : AssignmentStatus.Rejected;
+        await Data.UpdateAssignmentAsync(a);
+        await Load();
+    }
+}

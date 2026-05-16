@@ -1,0 +1,78 @@
+@page "/e"
+@layout EmployeeLayout
+@inject IDataService Data
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<TopBar />
+<h1>Bonjour, @FirstName</h1>
+<p class="sub">@RoleLine · Compte actif</p>
+
+<SectionLabel Text="Prochaine prestation" />
+@if (_next is null)
+{
+    <div class="card"><div class="m">Aucune prestation à venir</div></div>
+}
+else
+{
+    <div class="card glow">
+        <div class="t">@_next.Value.ev.Name</div>
+        <div class="m">@_next.Value.ev.Venue · @_next.Value.ev.Date.Fmt()
+            · RDV @_next.Value.ev.MeetingTime.Fmt()</div>
+    </div>
+    @if (_ts is { Status: TimesheetStatus.InProgress })
+    {
+        <NavLink class="btn ghost" href="@($"e/events/{_next.Value.ev.Id}/active")">
+            Reprendre — prestation en cours</NavLink>
+    }
+    else if (CanStartToday)
+    {
+        <button class="btn primary" @onclick="Start">Commencer la prestation</button>
+    }
+    else
+    {
+        <NavLink class="btn ghost" href="@($"e/events/{_next.Value.ev.Id}")">Voir le détail</NavLink>
+    }
+}
+
+@code {
+    string FirstName = "", RoleLine = "";
+    (ServiceEvent ev, Assignment asg)? _next;
+    Timesheet? _ts;
+    bool CanStartToday;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var u = Auth.CurrentUser!;
+        FirstName = u.FullName.Split(' ')[0];
+        var roleMap = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
+        RoleLine = string.Join(", ", u.JobRoleIds.Select(id => roleMap.GetValueOrDefault(id,"?")));
+
+        var asgs = (await Data.GetAssignmentsForAccountAsync(u.Id))
+            .Where(a => a.Status == AssignmentStatus.Confirmed).ToList();
+        var events = await Data.GetEventsAsync();
+        var joined = asgs
+            .Select(a => (ev: events.FirstOrDefault(e => e.Id == a.EventId), asg: a))
+            .Where(x => x.ev is not null && x.ev!.Status != EventStatus.Past)
+            .OrderBy(x => x.ev!.Date).ToList();
+        if (joined.Count > 0)
+        {
+            _next = (joined[0].ev!, joined[0].asg);
+            _ts = await Data.GetTimesheetForAssignmentAsync(joined[0].asg.Id);
+            CanStartToday = _next.Value.ev.Date == DateOnly.FromDateTime(DateTime.Today)
+                && (_ts is null || _ts.Status == TimesheetStatus.NotStarted);
+        }
+    }
+
+    async Task Start()
+    {
+        var asg = _next!.Value.asg;
+        _ts ??= await Data.GetTimesheetForAssignmentAsync(asg.Id);
+        if (_ts is null)
+            _ts = await Data.CreateTimesheetAsync(new Timesheet { AssignmentId = asg.Id });
+        _ts.StartedAt = DateTime.Now;
+        _ts.Status = TimesheetStatus.InProgress;
+        await Data.UpdateTimesheetAsync(_ts);
+        Nav.NavigateTo($"e/events/{_next.Value.ev.Id}/active");
+    }
+}

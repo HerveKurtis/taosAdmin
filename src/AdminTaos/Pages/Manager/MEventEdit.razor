@@ -1,0 +1,86 @@
+@page "/m/events/new"
+@page "/m/events/{Id}/edit"
+@layout ManagerLayout
+@inject IDataService Data
+@inject NavigationManager Nav
+
+<TopBar ShowBack="true" Title="@(_isNew ? "Nouvel event" : "Éditer")" BackTo="m/events" />
+<h1>@(_isNew ? "Nouvel event" : _e.Name)</h1>
+
+<div class="field"><span>Nom</span><input @bind="_e.Name" /></div>
+<div class="field"><span>Lieu</span><input @bind="_e.Venue" /></div>
+<div class="field"><span>Adresse</span><input @bind="_e.Address" /></div>
+<div class="field"><span>Date</span><input type="date" @bind="_date" /></div>
+<div class="field"><span>RDV</span><input type="time" @bind="_meet" /></div>
+<div class="field"><span>Fin prévue</span><input type="time" @bind="_end" /></div>
+<div class="field"><span>Tenue</span><input @bind="_e.DressCode" /></div>
+<div class="field"><span>Consignes</span><input @bind="_e.Instructions" /></div>
+<div class="field"><span>Contact sur place</span><input @bind="_e.OnSiteContact" /></div>
+<div class="field"><span>Ouvert à l'inscription</span>
+    <ToggleSwitch Value="_e.IsOpenForSignup"
+        ValueChanged="v => _e.IsOpenForSignup = v" /></div>
+
+<div class="lab">Effectif & rémunération par rôle</div>
+@foreach (var r in _roles)
+{
+    var need = _e.RoleNeeds.FirstOrDefault(n => n.JobRoleId == r.Id);
+    <div class="card">
+        <div class="t">@r.Name</div>
+        <div class="field"><span>Personnes</span>
+            <Stepper Value="need?.CountNeeded ?? 0"
+                     ValueChanged="v => SetCount(r.Id, v)" /></div>
+        <div class="field"><span>Taux €/h</span>
+            <input type="number" style="max-width:80px"
+                   value="@((need?.HourlyRate ?? 0m))"
+                   @onchange="e => SetRate(r.Id, e.Value)" /></div>
+    </div>
+}
+
+@if (_err) { <p class="pill bad">Le nom est obligatoire.</p> }
+<button class="btn primary" @onclick="Save">@(_isNew ? "Créer l'event" : "Enregistrer")</button>
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    ServiceEvent _e = new();
+    List<JobRole> _roles = new();
+    bool _isNew, _err;
+    DateOnly _date = DateOnly.FromDateTime(DateTime.Today.AddDays(1));
+    TimeOnly _meet = new(17,0), _end = new(23,0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _roles = await Data.GetJobRolesAsync();
+        _isNew = string.IsNullOrEmpty(Id);
+        if (!_isNew)
+        {
+            _e = await Data.GetEventAsync(Id!) ?? new ServiceEvent();
+            _date = _e.Date; _meet = _e.MeetingTime; _end = _e.ExpectedEndTime;
+        }
+    }
+
+    void SetCount(string roleId, int v)
+    {
+        var n = _e.RoleNeeds.FirstOrDefault(x => x.JobRoleId == roleId);
+        if (n is null) { if (v > 0) _e.RoleNeeds.Add(new RoleNeed { JobRoleId = roleId, CountNeeded = v }); }
+        else if (v == 0) _e.RoleNeeds.Remove(n);
+        else n.CountNeeded = v;
+    }
+    void SetRate(string roleId, object? raw)
+    {
+        if (!decimal.TryParse(raw?.ToString(), out var rate)) return;
+        var n = _e.RoleNeeds.FirstOrDefault(x => x.JobRoleId == roleId)
+                ?? AddEmpty(roleId);
+        n.HourlyRate = rate;
+    }
+    RoleNeed AddEmpty(string roleId)
+    { var n = new RoleNeed { JobRoleId = roleId, CountNeeded = 1 }; _e.RoleNeeds.Add(n); return n; }
+
+    async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_e.Name)) { _err = true; return; }
+        _e.Date = _date; _e.MeetingTime = _meet; _e.ExpectedEndTime = _end;
+        if (_isNew) await Data.CreateEventAsync(_e);
+        else await Data.UpdateEventAsync(_e);
+        Nav.NavigateTo("m/events");
+    }
+}

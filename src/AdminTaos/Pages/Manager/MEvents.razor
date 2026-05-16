@@ -1,0 +1,27 @@
+@page "/m/events"
+@layout ManagerLayout
+@inject IDataService Data
+
+<TopBar />
+<h1>Events</h1>
+<p class="sub">@_events.Count event(s)</p>
+<NavLink class="btn primary" href="m/events/new">+ Nouvel event</NavLink>
+
+@if (_events.Count == 0)
+{
+    <EmptyState Icon="▦" Title="Aucun event" Hint="Crée ton premier event." />
+}
+@foreach (var e in _events)
+{
+    <NavLink class="card" href="@($"m/events/{e.Id}")">
+        <div class="t">@e.Name</div>
+        <div class="m">@e.Date.Fmt() · @e.Venue · @StatusFr(e.Status)</div>
+    </NavLink>
+}
+
+@code {
+    List<ServiceEvent> _events = new();
+    protected override async Task OnInitializedAsync() => _events = await Data.GetEventsAsync();
+    string StatusFr(EventStatus s) => s switch {
+        EventStatus.Upcoming => "À venir", EventStatus.InProgress => "En cours", _ => "Passé" };
+}

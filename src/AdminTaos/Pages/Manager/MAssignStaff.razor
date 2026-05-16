@@ -1,0 +1,58 @@
+@page "/m/events/{Id}/assign"
+@layout ManagerLayout
+@inject IDataService Data
+@inject NavigationManager Nav
+
+<TopBar ShowBack="true" Title="Assigner" BackTo="@($"m/events/{Id}")" />
+<h1>Assigner du personnel</h1>
+<p class="sub">@_event?.Name</p>
+
+@foreach (var r in _eventRoles)
+{
+    <div class="lab">@r.Name</div>
+    @foreach (var emp in _employees.Where(e => e.JobRoleIds.Contains(r.Id)))
+    {
+        var already = _assigned.Any(a => a.AccountId == emp.Id && a.JobRoleId == r.Id);
+        <div class="card">
+            <div class="t">@emp.FullName</div>
+            <div class="m">@(already ? "Déjà assigné" : "Disponible")</div>
+            @if (!already)
+            {
+                <button class="btn ghost" style="margin-top:8px"
+                        @onclick="() => Assign(emp.Id, r.Id)">Assigner</button>
+            }
+        </div>
+    }
+    @if (!_employees.Any(e => e.JobRoleIds.Contains(r.Id)))
+    {
+        <div class="card"><div class="m">Aucun employé actif pour ce rôle</div></div>
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    ServiceEvent? _event;
+    List<Account> _employees = new();
+    List<JobRole> _eventRoles = new();
+    List<Assignment> _assigned = new();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    async Task Load()
+    {
+        _event = await Data.GetEventAsync(Id);
+        var roles = await Data.GetJobRolesAsync();
+        _eventRoles = roles.Where(r => _event!.RoleNeeds.Any(n => n.JobRoleId == r.Id)).ToList();
+        _employees = (await Data.GetAccountsAsync())
+            .Where(a => a.Type == AccountType.Employee && a.Status == AccountStatus.Active).ToList();
+        _assigned = await Data.GetAssignmentsForEventAsync(Id);
+    }
+
+    async Task Assign(string accId, string roleId)
+    {
+        await Data.CreateAssignmentAsync(new Assignment {
+            EventId = Id, AccountId = accId, JobRoleId = roleId,
+            Source = AssignmentSource.AssignedByManager, Status = AssignmentStatus.Confirmed });
+        await Load();
+    }
+}

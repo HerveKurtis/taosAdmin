@@ -1,0 +1,15 @@
+@page "/pending"
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<TopBar />
+<div class="empty" style="margin-top:60px">
+    <div class="ic">◷</div>
+    <div class="e-t">Compte en attente de validation</div>
+    <p>Un manager doit valider ton compte avant l'accès.<br/>Reviens un peu plus tard.</p>
+</div>
+<button class="btn ghost" @onclick="Logout">Se déconnecter</button>
+
+@code {
+    async Task Logout() { await Auth.LogoutAsync(); Nav.NavigateTo("login", replace:true); }
+}

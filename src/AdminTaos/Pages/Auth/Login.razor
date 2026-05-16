@@ -1,0 +1,61 @@
+@page "/login"
+@inject IDataService Data
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<TopBar />
+<h1>Connexion</h1>
+<p class="sub">Entre ton email, ou choisis un compte de test.</p>
+
+<div class="field"><span>Email</span>
+    <input @bind="_email" placeholder="manager@taos.be" /></div>
+@if (_error) { <p class="pill bad" style="margin-top:10px">Email inconnu</p> }
+<button class="btn primary" style="margin-top:14px" @onclick="DoLogin">Se connecter</button>
+<a class="btn ghost" href="register">Créer un compte</a>
+
+<div class="lab">Comptes de test</div>
+@foreach (var a in _accounts)
+{
+    <button class="card quick" @onclick="() => Quick(a.Email)">
+        <div class="t">@a.FullName</div>
+        <div class="m">@TypeLabel(a) · @RoleLabel(a) · @StatusLabel(a.Status)</div>
+    </button>
+}
+
+@code {
+    List<Account> _accounts = new();
+    Dictionary<string,string> _roleNames = new();
+    string _email = "";
+    bool _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = await Data.GetAccountsAsync();
+        _roleNames = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
+    }
+
+    string TypeLabel(Account a) => a.Type == AccountType.Manager ? "Manager" : "Employé";
+    string RoleLabel(Account a) => a.JobRoleIds.Count == 0 ? "—"
+        : string.Join(", ", a.JobRoleIds.Select(id => _roleNames.GetValueOrDefault(id, "?")));
+    string StatusLabel(AccountStatus s) => s switch
+    {
+        AccountStatus.Active => "Actif",
+        AccountStatus.Pending => "En attente",
+        _ => "Refusé"
+    };
+
+    async Task DoLogin() => await Quick(_email);
+
+    async Task Quick(string email)
+    {
+        _error = !await Auth.LoginAsync(email);
+        if (_error) return;
+        var u = Auth.CurrentUser!;
+        Nav.NavigateTo(u.Status switch
+        {
+            AccountStatus.Pending => "pending",
+            AccountStatus.Rejected => "login",
+            _ => u.Type == AccountType.Manager ? "m" : "e"
+        }, replace: true);
+    }
+}

@@ -1,0 +1,25 @@
+@page "/e/profile"
+@layout EmployeeLayout
+@inject IDataService Data
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<TopBar />
+<h1>Profil</h1>
+<div class="card glow">
+    <div class="t">@Auth.CurrentUser?.FullName</div>
+    <div class="m">@Auth.CurrentUser?.Email<br/>Rôle(s) : @_roles<br/>
+        Statut : <span class="pill ok">Actif</span></div>
+</div>
+<button class="btn ghost" @onclick="Logout">Se déconnecter</button>
+
+@code {
+    string _roles = "";
+    protected override async Task OnInitializedAsync()
+    {
+        var map = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
+        _roles = string.Join(", ", (Auth.CurrentUser?.JobRoleIds ?? new())
+            .Select(id => map.GetValueOrDefault(id, "?")));
+    }
+    async Task Logout() { await Auth.LogoutAsync(); Nav.NavigateTo("login", replace:true); }
+}

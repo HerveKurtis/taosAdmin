@@ -1,0 +1,31 @@
+@inject AuthState Auth
+@inject NavigationGuard Guard
+@inject NavigationManager Nav
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(AuthLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(AuthLayout)"><p>Page introuvable.</p></LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        Nav.LocationChanged += (_, __) => Enforce();
+        Auth.OnChange += Enforce;
+        Enforce();
+    }
+
+    void Enforce()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0];
+        var target = Guard.Resolve(path, Auth.CurrentUser);
+        if (target is not null && target != path)
+            Nav.NavigateTo(target, replace: true);
+    }
+}

@@ -1,0 +1,12 @@
+@inherits LayoutComponentBase
+<div class="app-shell">
+    <div class="content">@Body</div>
+    <BottomNav Items="@_nav" />
+</div>
+@code {
+    readonly List<BottomNav.NavItem> _nav = new()
+    {
+        new("/e","⌂","Accueil"), new("/e/events","▦","Events"),
+        new("/e/hours","◷","Mes heures"), new("/e/profile","○","Profil"),
+    };
+}

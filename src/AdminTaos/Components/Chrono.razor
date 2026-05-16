@@ -1,0 +1,22 @@
+@implements IDisposable
+<div class="chrono">@Display</div>
+
+@code {
+    [Parameter, EditorRequired] public DateTime Since { get; set; }
+    System.Threading.Timer? _t;
+    string Display = "00:00:00";
+
+    protected override void OnInitialized()
+    {
+        Tick();
+        _t = new System.Threading.Timer(_ =>
+            InvokeAsync(() => { Tick(); StateHasChanged(); }), null, 1000, 1000);
+    }
+    void Tick()
+    {
+        var e = DateTime.Now - Since;
+        if (e < TimeSpan.Zero) e = TimeSpan.Zero;
+        Display = $"{(int)e.TotalHours:00}:{e.Minutes:00}:{e.Seconds:00}";
+    }
+    public void Dispose() => _t?.Dispose();
+}

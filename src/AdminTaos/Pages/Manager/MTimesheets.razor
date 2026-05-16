@@ -1,0 +1,45 @@
+@page "/m/timesheets"
+@layout ManagerLayout
+@inject IDataService Data
+
+<TopBar ShowBack="true" Title="Timesheets" BackTo="m" />
+<h1>Timesheets</h1>
+<div class="row2" style="margin-bottom:6px">
+    <button class="btn @(_tab=="sent"?"primary":"ghost")" @onclick='() => _tab="sent"'>À valider</button>
+    <button class="btn @(_tab=="all"?"primary":"ghost")" @onclick='() => _tab="all"'>Toutes</button>
+</div>
+
+@{ var rows = _tab == "sent" ? _rows.Where(r => r.ts.Status == TimesheetStatus.Sent) : _rows; }
+@if (!rows.Any())
+{
+    <EmptyState Icon="◷" Title="Rien à afficher" />
+}
+@foreach (var r in rows)
+{
+    <NavLink class="card" href="@($"m/timesheets/{r.ts.Id}")">
+        <div class="t">@r.who — @r.ev.Name</div>
+        <div class="m">@r.ev.Date.Fmt() · @r.ts.Duration.Fmt()
+            · <span class="@r.ts.Status.PillClass()">@r.ts.Status.StatusFr()</span></div>
+    </NavLink>
+}
+
+@code {
+    string _tab = "sent";
+    List<(Timesheet ts, ServiceEvent ev, string who)> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var ts = await Data.GetTimesheetsAsync();
+        var asgs = await Data.GetAssignmentsAsync();
+        var events = await Data.GetEventsAsync();
+        var accs = (await Data.GetAccountsAsync()).ToDictionary(a => a.Id, a => a.FullName);
+        foreach (var t in ts)
+        {
+            var a = asgs.FirstOrDefault(x => x.Id == t.AssignmentId);
+            var ev = a is null ? null : events.FirstOrDefault(e => e.Id == a.EventId);
+            if (a is null || ev is null) continue;
+            _rows.Add((t, ev, accs.GetValueOrDefault(a.AccountId, "?")));
+        }
+        _rows = _rows.OrderByDescending(r => r.ev.Date).ToList();
+    }
+}

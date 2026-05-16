@@ -1,0 +1,86 @@
+@page "/e/events/{Id}"
+@layout EmployeeLayout
+@inject IDataService Data
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+@if (_e is null) { <TopBar ShowBack="true" Title="Event" BackTo="e/events" /><p class="sub">Introuvable.</p> }
+else
+{
+    <TopBar ShowBack="true" Title="@_e.Name" BackTo="e/events" />
+    <div class="card glow">
+        <div class="t">@_e.Name</div>
+        <div class="m">@_e.Venue — @_e.Address<br/>@_e.Date.Fmt() · @_e.MeetingTime.Fmt() → @_e.ExpectedEndTime.Fmt()
+        @if(!string.IsNullOrWhiteSpace(_e.DressCode)){<text><br/>Tenue : @_e.DressCode</text>}
+        @if(!string.IsNullOrWhiteSpace(_e.Instructions)){<text><br/>@_e.Instructions</text>}
+        @if(!string.IsNullOrWhiteSpace(_e.OnSiteContact)){<text><br/>Contact : @_e.OnSiteContact</text>}</div>
+    </div>
+
+    <div class="lab">Rémunération</div>
+    @foreach (var rn in _e.RoleNeeds.Where(r => _myRoleIds.Contains(r.JobRoleId)))
+    { <div class="card"><div class="m">@RoleName(rn.JobRoleId) · @rn.HourlyRate €/h</div></div> }
+
+    @if (_asg is null && _e.IsOpenForSignup)
+    {
+        <button class="btn primary" @onclick="RequestJoin">Demander à participer</button>
+    }
+    else if (_asg is { Status: AssignmentStatus.PendingApproval })
+    {
+        <p class="pill wait">Demande en attente de validation</p>
+    }
+    else if (_asg is { Status: AssignmentStatus.Rejected })
+    {
+        <p class="pill bad">Demande refusée</p>
+    }
+    else if (_asg is { Status: AssignmentStatus.Confirmed })
+    {
+        if (_ts is { Status: TimesheetStatus.InProgress })
+        { <NavLink class="btn ghost" href="@($"e/events/{_e.Id}/active")">Prestation en cours</NavLink> }
+        else if (_ts is { Status: TimesheetStatus.ToSend })
+        { <NavLink class="btn primary" href="@($"e/events/{_e.Id}/recap")">Finaliser & envoyer</NavLink> }
+        else if (_e.Date == DateOnly.FromDateTime(DateTime.Today))
+        { <button class="btn primary" @onclick="Start">Commencer la prestation</button> }
+        else
+        { <p class="pill ok">Tu es confirmé(e) sur cet event</p> }
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    ServiceEvent? _e;
+    Assignment? _asg;
+    Timesheet? _ts;
+    HashSet<string> _myRoleIds = new();
+    Dictionary<string,string> _roles = new();
+
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load()
+    {
+        var u = Auth.CurrentUser!;
+        _myRoleIds = u.JobRoleIds.ToHashSet();
+        _e = await Data.GetEventAsync(Id);
+        _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
+        _asg = (await Data.GetAssignmentsForAccountAsync(u.Id)).FirstOrDefault(a => a.EventId == Id);
+        if (_asg is not null) _ts = await Data.GetTimesheetForAssignmentAsync(_asg.Id);
+    }
+    string RoleName(string id) => _roles.GetValueOrDefault(id, "?");
+
+    async Task RequestJoin()
+    {
+        var u = Auth.CurrentUser!;
+        var role = _e!.RoleNeeds.FirstOrDefault(r => _myRoleIds.Contains(r.JobRoleId))?.JobRoleId
+                   ?? u.JobRoleIds.First();
+        await Data.CreateAssignmentAsync(new Assignment {
+            EventId = Id, AccountId = u.Id, JobRoleId = role,
+            Source = AssignmentSource.SelfRequest, Status = AssignmentStatus.PendingApproval });
+        await Load();
+    }
+
+    async Task Start()
+    {
+        _ts ??= await Data.CreateTimesheetAsync(new Timesheet { AssignmentId = _asg!.Id });
+        _ts.StartedAt = DateTime.Now; _ts.Status = TimesheetStatus.InProgress;
+        await Data.UpdateTimesheetAsync(_ts);
+        Nav.NavigateTo($"e/events/{Id}/active");
+    }
+}

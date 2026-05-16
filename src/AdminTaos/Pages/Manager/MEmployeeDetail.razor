@@ -1,0 +1,56 @@
+@page "/m/team/{Id}"
+@layout ManagerLayout
+@inject IDataService Data
+@inject NavigationManager Nav
+
+@if (_a is null) { <TopBar ShowBack="true" Title="Employé" BackTo="m/team" /><p class="sub">Introuvable.</p> }
+else
+{
+    <TopBar ShowBack="true" Title="@_a.FullName" BackTo="m/team" />
+    <div class="card glow">
+        <div class="t">@_a.FullName</div>
+        <div class="m">@_a.Email<br/>Rôles : @RoleNames()<br/>
+            Statut : <span class="@StatusPill()">@StatusFr()</span></div>
+    </div>
+
+    @if (_a.Status == AccountStatus.Pending)
+    {
+        <div class="row2" style="margin-top:12px">
+            <button class="btn danger" @onclick="() => Set(AccountStatus.Rejected)">Refuser</button>
+            <button class="btn primary" @onclick="() => Set(AccountStatus.Active)">Valider le compte</button>
+        </div>
+    }
+    else if (_a.Status == AccountStatus.Active)
+    {
+        <button class="btn danger" @onclick="() => Set(AccountStatus.Rejected)">Suspendre</button>
+    }
+    else
+    {
+        <button class="btn primary" @onclick="() => Set(AccountStatus.Active)">Réactiver</button>
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    Account? _a;
+    Dictionary<string,string> _roles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _a = await Data.GetAccountAsync(Id);
+        _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
+    }
+    string RoleNames() => _a!.JobRoleIds.Count == 0 ? "—"
+        : string.Join(", ", _a.JobRoleIds.Select(id => _roles.GetValueOrDefault(id,"?")));
+    string StatusFr() => _a!.Status switch {
+        AccountStatus.Active => "Actif", AccountStatus.Pending => "En attente", _ => "Refusé" };
+    string StatusPill() => _a!.Status switch {
+        AccountStatus.Active => "pill ok", AccountStatus.Pending => "pill wait", _ => "pill bad" };
+
+    async Task Set(AccountStatus s)
+    {
+        _a!.Status = s;
+        await Data.UpdateAccountAsync(_a);
+        Nav.NavigateTo("m/team");
+    }
+}

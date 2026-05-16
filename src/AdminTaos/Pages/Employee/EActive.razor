@@ -1,0 +1,46 @@
+@page "/e/events/{Id}/active"
+@layout EmployeeLayout
+@inject IDataService Data
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<TopBar />
+@if (_e is not null && _ts is not null)
+{
+    <div class="lab">Prestation en cours</div>
+    <div class="card glow">
+        <div class="t">@_e.Name</div>
+        <div class="m">@_e.Venue · @RoleName</div>
+    </div>
+    <Chrono Since="_ts.StartedAt!.Value" />
+    <div class="live">● EN COURS — DÉBUT @_ts.StartedAt.Fmt()</div>
+    <button class="btn ghost" @onclick="Finish">Terminer la prestation</button>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    ServiceEvent? _e;
+    Timesheet? _ts;
+    string RoleName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var u = Auth.CurrentUser!;
+        _e = await Data.GetEventAsync(Id);
+        var asg = (await Data.GetAssignmentsForAccountAsync(u.Id)).FirstOrDefault(a => a.EventId == Id);
+        if (asg is not null)
+        {
+            _ts = await Data.GetTimesheetForAssignmentAsync(asg.Id);
+            RoleName = (await Data.GetJobRolesAsync())
+                .FirstOrDefault(r => r.Id == asg.JobRoleId)?.Name ?? "";
+        }
+    }
+
+    async Task Finish()
+    {
+        _ts!.EndedAt = DateTime.Now;
+        _ts.Status = TimesheetStatus.ToSend;
+        await Data.UpdateTimesheetAsync(_ts);
+        Nav.NavigateTo($"e/events/{Id}/recap");
+    }
+}

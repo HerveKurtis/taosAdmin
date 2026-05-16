@@ -1,0 +1,39 @@
+@page "/e/events"
+@layout EmployeeLayout
+@inject IDataService Data
+@inject AuthState Auth
+
+<TopBar />
+<h1>Events</h1>
+
+<SectionLabel Text="Mes events" />
+@if (_mine.Count == 0) { <div class="card"><div class="m">Aucun event assigné</div></div> }
+@foreach (var e in _mine)
+{
+    <NavLink class="card" href="@($"e/events/{e.Id}")">
+        <div class="t">@e.Name</div><div class="m">@e.Date.Fmt() · @e.Venue</div>
+    </NavLink>
+}
+
+<SectionLabel Text="Events ouverts à rejoindre" />
+@if (_open.Count == 0) { <div class="card"><div class="m">Aucun event ouvert</div></div> }
+@foreach (var e in _open)
+{
+    <NavLink class="card glow" href="@($"e/events/{e.Id}")">
+        <div class="t">@e.Name</div><div class="m">@e.Date.Fmt() · @e.Venue · ouvert</div>
+    </NavLink>
+}
+
+@code {
+    List<ServiceEvent> _mine = new(), _open = new();
+    protected override async Task OnInitializedAsync()
+    {
+        var u = Auth.CurrentUser!;
+        var events = await Data.GetEventsAsync();
+        var myAsg = await Data.GetAssignmentsForAccountAsync(u.Id);
+        var myEventIds = myAsg.Select(a => a.EventId).ToHashSet();
+        _mine = events.Where(e => myEventIds.Contains(e.Id)).ToList();
+        _open = events.Where(e => e.IsOpenForSignup && e.Status != EventStatus.Past
+                                   && !myEventIds.Contains(e.Id)).ToList();
+    }
+}

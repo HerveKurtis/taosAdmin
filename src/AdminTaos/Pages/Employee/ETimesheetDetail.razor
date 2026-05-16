@@ -1,24 +1,33 @@
 @page "/e/hours/{Id}"
-@layout EmployeeLayout
+@layout DashboardLayout
 @inject IDataService Data
+@inject NavigationManager Nav
 
-@if (_ts is null) { <TopBar ShowBack="true" Title="Timesheet" BackTo="e/hours" /><p class="sub">Introuvable.</p> }
+<button class="backlink" @onclick='() => Nav.NavigateTo("e/hours")'>‹ Mes heures</button>
+
+@if (_ts is null)
+{
+    <div class="panel"><p class="sub">Introuvable.</p></div>
+}
 else
 {
-    <TopBar ShowBack="true" Title="Timesheet" BackTo="e/hours" />
-    <div class="card glow">
+    <h1>Timesheet</h1>
+    <div class="panel">
         <div class="t">@_eventName</div>
         <div class="m">Durée : @_ts.Duration.Fmt()</div>
     </div>
-    <div class="field">Début <b>@_ts.EffectiveStart.Fmt()</b></div>
-    <div class="field">Fin <b>@_ts.EffectiveEnd.Fmt()</b></div>
-    <div class="field">Statut <b><span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span></b></div>
-
+    <div class="panel">
+        <div class="field"><span>Début</span><b>@_ts.EffectiveStart.Fmt()</b></div>
+        <div class="field"><span>Fin</span><b>@_ts.EffectiveEnd.Fmt()</b></div>
+        <div class="field"><span>Statut</span><b><span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span></b></div>
+    </div>
     @if (_ts.Status == TimesheetStatus.Rejected)
     {
-        <div class="card"><div class="t">Motif du refus</div>
-            <div class="m">@(_ts.RejectionReason ?? "Non précisé")</div></div>
-        <button class="btn primary" @onclick="Resend">Renvoyer la timesheet</button>
+        <div class="panel">
+            <div class="t">Motif du refus</div>
+            <div class="m">@(_ts.RejectionReason ?? "Non précisé")</div>
+        </div>
+        <button class="btn primary block" @onclick="Resend">Renvoyer la timesheet</button>
     }
 }
 

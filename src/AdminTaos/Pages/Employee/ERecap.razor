@@ -1,32 +1,33 @@
 @page "/e/events/{Id}/recap"
-@layout EmployeeLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<TopBar ShowBack="true" Title="Prestation terminée" BackTo="e" />
 @if (_e is not null && _ts is not null)
 {
-    <div class="lab">Récapitulatif</div>
-    <div class="card glow">
-        <div class="t">@_e.Name</div>
-        <div class="m">@_e.Date.Fmt() · @RoleName</div>
+    <h1>Shift terminé</h1>
+    <div class="panel" style="max-width:540px">
+        <div class="lab" style="margin-top:0">Récapitulatif</div>
+        <p style="font-size:15px;line-height:1.9;color:var(--txt)">
+            <b>Event @_e.Name</b> · @_e.Date.Fmt() · Rôle @RoleName<br/>
+            Tu as travaillé de <b>@_ts.StartedAt.Fmt()</b> à <b>@_ts.EndedAt.Fmt()</b>,
+            soit <b style="color:var(--gold)">@_ts.Duration.Fmt()</b> au total.
+        </p>
+        <div style="margin:14px 0">
+            <span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span>
+        </div>
+        @if (_ts.Status == TimesheetStatus.ToSend)
+        {
+            <button class="btn primary block" @onclick="Send">Envoyer ma timesheet pour validation</button>
+            <p class="m" style="text-align:center;margin-top:10px">Le manager la recevra pour validation.</p>
+        }
+        else
+        {
+            <p class="pill ok" style="display:block;text-align:center">Timesheet envoyée pour validation ✓</p>
+            <NavLink class="btn ghost block" style="margin-top:10px" href="e/hours">Voir mes heures</NavLink>
+        }
     </div>
-    <div class="chrono" style="font-size:34px">@_ts.Duration.Fmt()</div>
-    <div class="field">Début <b>@_ts.StartedAt.Fmt()</b></div>
-    <div class="field">Fin <b>@_ts.EndedAt.Fmt()</b></div>
-    <span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span>
-
-    @if (_ts.Status == TimesheetStatus.ToSend)
-    {
-        <button class="btn primary" style="margin-top:16px" @onclick="Send">Envoyer la timesheet</button>
-        <p class="m" style="text-align:center;margin-top:8px">Le manager la recevra pour validation.</p>
-    }
-    else
-    {
-        <p class="pill ok" style="margin-top:16px">Timesheet envoyée ✓</p>
-        <NavLink class="btn ghost" href="e/hours">Voir mes heures</NavLink>
-    }
 }
 
 @code {

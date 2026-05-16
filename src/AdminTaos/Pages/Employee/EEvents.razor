@@ -1,28 +1,32 @@
 @page "/e/events"
-@layout EmployeeLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject AuthState Auth
+@inject NavigationManager Nav
 
-<TopBar />
 <h1>Events</h1>
 
-<SectionLabel Text="Mes events" />
-@if (_mine.Count == 0) { <div class="card"><div class="m">Aucun event assigné</div></div> }
-@foreach (var e in _mine)
-{
-    <NavLink class="card" href="@($"e/events/{e.Id}")">
-        <div class="t">@e.Name</div><div class="m">@e.Date.Fmt() · @e.Venue</div>
-    </NavLink>
-}
+<div class="lab">Mes events</div>
+@{ var _mineCols = new List<ResponsiveTable<ServiceEvent>.Column> {
+    new("Event", e => @<b>@e.Name</b>),
+    new("Date", e => @<text>@e.Date.Fmt()</text>),
+    new("Lieu", e => @<text>@e.Venue</text>)
+}; }
+<ResponsiveTable TItem="ServiceEvent" Items="_mine"
+    EmptyIcon="◷" EmptyTitle="Aucun event assigné"
+    RowClick="@(e => Nav.NavigateTo($"e/events/{e.Id}"))"
+    Columns="_mineCols" />
 
-<SectionLabel Text="Events ouverts à rejoindre" />
-@if (_open.Count == 0) { <div class="card"><div class="m">Aucun event ouvert</div></div> }
-@foreach (var e in _open)
-{
-    <NavLink class="card glow" href="@($"e/events/{e.Id}")">
-        <div class="t">@e.Name</div><div class="m">@e.Date.Fmt() · @e.Venue · ouvert</div>
-    </NavLink>
-}
+<div class="lab">Events ouverts à rejoindre</div>
+@{ var _openCols = new List<ResponsiveTable<ServiceEvent>.Column> {
+    new("Event", e => @<b>@e.Name</b>),
+    new("Date", e => @<text>@e.Date.Fmt()</text>),
+    new("Lieu", e => @<text>@e.Venue · ouvert</text>)
+}; }
+<ResponsiveTable TItem="ServiceEvent" Items="_open"
+    EmptyIcon="◷" EmptyTitle="Aucun event ouvert"
+    RowClick="@(e => Nav.NavigateTo($"e/events/{e.Id}"))"
+    Columns="_openCols" />
 
 @code {
     List<ServiceEvent> _mine = new(), _open = new();

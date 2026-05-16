@@ -1,20 +1,19 @@
 @page "/e/events/{Id}/active"
-@layout EmployeeLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<TopBar />
 @if (_e is not null && _ts is not null)
 {
-    <div class="lab">Prestation en cours</div>
-    <div class="card glow">
+    <h1>Shift en cours</h1>
+    <div class="panel" style="text-align:center;max-width:480px;margin:0 auto">
         <div class="t">@_e.Name</div>
         <div class="m">@_e.Venue · @RoleName</div>
+        <Chrono Since="_ts.StartedAt!.Value" />
+        <div class="live">● EN COURS — DÉBUT @_ts.StartedAt.Fmt()</div>
+        <button class="btn primary block" @onclick="Finish">Terminer mon shift</button>
     </div>
-    <Chrono Since="_ts.StartedAt!.Value" />
-    <div class="live">● EN COURS — DÉBUT @_ts.StartedAt.Fmt()</div>
-    <button class="btn ghost" @onclick="Finish">Terminer la prestation</button>
 }
 
 @code {

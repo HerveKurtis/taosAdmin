@@ -1,17 +1,17 @@
 @page "/e/profile"
-@layout EmployeeLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<TopBar />
 <h1>Profil</h1>
-<div class="card glow">
-    <div class="t">@Auth.CurrentUser?.FullName</div>
-    <div class="m">@Auth.CurrentUser?.Email<br/>Rôle(s) : @_roles<br/>
-        Statut : <span class="pill ok">Actif</span></div>
+<div class="panel">
+    <div class="field"><span>Nom</span><b>@Auth.CurrentUser?.FullName</b></div>
+    <div class="field"><span>Email</span><b>@Auth.CurrentUser?.Email</b></div>
+    <div class="field"><span>Rôle(s)</span><b>@_roles</b></div>
+    <div class="field"><span>Statut</span><b><span class="pill ok">Actif</span></b></div>
 </div>
-<button class="btn ghost" @onclick="Logout">Se déconnecter</button>
+<button class="btn ghost" style="margin-top:16px" @onclick="Logout">Se déconnecter</button>
 
 @code {
     string _roles = "";

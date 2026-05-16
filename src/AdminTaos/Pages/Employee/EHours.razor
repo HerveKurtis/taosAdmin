@@ -1,23 +1,20 @@
 @page "/e/hours"
-@layout EmployeeLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject AuthState Auth
+@inject NavigationManager Nav
 
-<TopBar />
 <h1>Mes heures</h1>
-
-@if (_rows.Count == 0)
-{
-    <EmptyState Icon="◷" Title="Aucune prestation" Hint="Tes timesheets apparaîtront ici." />
-}
-@foreach (var r in _rows)
-{
-    <NavLink class="card" href="@($"e/hours/{r.ts.Id}")">
-        <div class="t">@r.ev.Name</div>
-        <div class="m">@r.ev.Date.Fmt() · @r.ts.Duration.Fmt()
-            · <span class="@r.ts.Status.PillClass()">@r.ts.Status.StatusFr()</span></div>
-    </NavLink>
-}
+@{ var _hoursCols = new List<ResponsiveTable<(Timesheet ts, ServiceEvent ev)>.Column> {
+    new("Event", r => @<b>@r.ev.Name</b>),
+    new("Date", r => @<text>@r.ev.Date.Fmt()</text>),
+    new("Durée", r => @<text>@r.ts.Duration.Fmt()</text>),
+    new("Statut", r => @<span class="@r.ts.Status.PillClass()">@r.ts.Status.StatusFr()</span>)
+}; }
+<ResponsiveTable TItem="(Timesheet ts, ServiceEvent ev)" Items="_rows"
+    EmptyIcon="≣" EmptyTitle="Aucune prestation" EmptyHint="Tes timesheets apparaîtront ici."
+    RowClick="@(r => Nav.NavigateTo($"e/hours/{r.ts.Id}"))"
+    Columns="_hoursCols" />
 
 @code {
     List<(Timesheet ts, ServiceEvent ev)> _rows = new();

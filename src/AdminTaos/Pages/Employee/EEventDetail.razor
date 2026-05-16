@@ -1,15 +1,19 @@
 @page "/e/events/{Id}"
-@layout EmployeeLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-@if (_e is null) { <TopBar ShowBack="true" Title="Event" BackTo="e/events" /><p class="sub">Introuvable.</p> }
+<button class="backlink" @onclick='() => Nav.NavigateTo("e/events")'>‹ Events</button>
+
+@if (_e is null)
+{
+    <div class="panel"><p class="sub">Introuvable.</p></div>
+}
 else
 {
-    <TopBar ShowBack="true" Title="@_e.Name" BackTo="e/events" />
-    <div class="card glow">
-        <div class="t">@_e.Name</div>
+    <h1>@_e.Name</h1>
+    <div class="panel">
         <div class="m">@_e.Venue — @_e.Address<br/>@_e.Date.Fmt() · @_e.MeetingTime.Fmt() → @_e.ExpectedEndTime.Fmt()
         @if(!string.IsNullOrWhiteSpace(_e.DressCode)){<text><br/>Tenue : @_e.DressCode</text>}
         @if(!string.IsNullOrWhiteSpace(_e.Instructions)){<text><br/>@_e.Instructions</text>}
@@ -17,32 +21,36 @@ else
     </div>
 
     <div class="lab">Rémunération</div>
+    <div class="panel">
     @foreach (var rn in _e.RoleNeeds.Where(r => _myRoleIds.Contains(r.JobRoleId)))
-    { <div class="card"><div class="m">@RoleName(rn.JobRoleId) · @rn.HourlyRate €/h</div></div> }
+    { <div class="field"><span>@RoleName(rn.JobRoleId)</span><b>@rn.HourlyRate €/h</b></div> }
+    </div>
 
+    <div style="margin-top:18px">
     @if (_asg is null && _e.IsOpenForSignup)
     {
-        <button class="btn primary" @onclick="RequestJoin">Demander à participer</button>
+        <button class="btn primary block" @onclick="RequestJoin">Demander à participer</button>
     }
     else if (_asg is { Status: AssignmentStatus.PendingApproval })
     {
-        <p class="pill wait">Demande en attente de validation</p>
+        <p class="pill wait" style="display:block;text-align:center">Demande en attente de validation</p>
     }
     else if (_asg is { Status: AssignmentStatus.Rejected })
     {
-        <p class="pill bad">Demande refusée</p>
+        <p class="pill bad" style="display:block;text-align:center">Demande refusée</p>
     }
     else if (_asg is { Status: AssignmentStatus.Confirmed })
     {
         if (_ts is { Status: TimesheetStatus.InProgress })
-        { <NavLink class="btn ghost" href="@($"e/events/{_e.Id}/active")">Prestation en cours</NavLink> }
+        { <NavLink class="btn primary block" href="@($"e/events/{_e.Id}/active")">Reprendre mon shift en cours</NavLink> }
         else if (_ts is { Status: TimesheetStatus.ToSend })
-        { <NavLink class="btn primary" href="@($"e/events/{_e.Id}/recap")">Finaliser & envoyer</NavLink> }
+        { <NavLink class="btn primary block" href="@($"e/events/{_e.Id}/recap")">Finaliser & envoyer ma timesheet</NavLink> }
         else if (_e.Date == DateOnly.FromDateTime(DateTime.Today))
-        { <button class="btn primary" @onclick="Start">Commencer la prestation</button> }
+        { <button class="btn primary block" @onclick="Start">Commencer mon shift</button> }
         else
-        { <p class="pill ok">Tu es confirmé(e) sur cet event</p> }
+        { <p class="pill ok" style="display:block;text-align:center">Tu es confirmé(e) sur cet event</p> }
     }
+    </div>
 }
 
 @code {

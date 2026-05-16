@@ -1,38 +1,38 @@
 @page "/e"
-@layout EmployeeLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<TopBar />
 <h1>Bonjour, @FirstName</h1>
 <p class="sub">@RoleLine · Compte actif</p>
 
-<SectionLabel Text="Prochaine prestation" />
+<div class="lab">Prochaine prestation</div>
 @if (_next is null)
 {
-    <div class="card"><div class="m">Aucune prestation à venir</div></div>
+    <div class="panel"><div class="m">Aucune prestation à venir</div></div>
 }
 else
 {
-    <div class="card glow">
+    <div class="panel">
         <div class="t">@_next.Value.ev.Name</div>
-        <div class="m">@_next.Value.ev.Venue · @_next.Value.ev.Date.Fmt()
-            · RDV @_next.Value.ev.MeetingTime.Fmt()</div>
+        <div class="m">@_next.Value.ev.Venue · @_next.Value.ev.Date.Fmt() · RDV @_next.Value.ev.MeetingTime.Fmt()</div>
+        <div style="margin-top:16px">
+        @if (_ts is { Status: TimesheetStatus.InProgress })
+        {
+            <NavLink class="btn primary block" href="@($"e/events/{_next.Value.ev.Id}/active")">
+                Reprendre mon shift en cours</NavLink>
+        }
+        else if (CanStartToday)
+        {
+            <button class="btn primary block" @onclick="Start">Commencer mon shift</button>
+        }
+        else
+        {
+            <NavLink class="btn ghost block" href="@($"e/events/{_next.Value.ev.Id}")">Voir le détail</NavLink>
+        }
+        </div>
     </div>
-    @if (_ts is { Status: TimesheetStatus.InProgress })
-    {
-        <NavLink class="btn ghost" href="@($"e/events/{_next.Value.ev.Id}/active")">
-            Reprendre — prestation en cours</NavLink>
-    }
-    else if (CanStartToday)
-    {
-        <button class="btn primary" @onclick="Start">Commencer la prestation</button>
-    }
-    else
-    {
-        <NavLink class="btn ghost" href="@($"e/events/{_next.Value.ev.Id}")">Voir le détail</NavLink>
-    }
 }
 
 @code {

@@ -1,0 +1,19 @@
+<nav class="bottomnav">
+    @foreach (var i in Items)
+    {
+        <NavLink href="@i.Href" class="@(IsActive(i.Href) ? "active" : "")" Match="NavLinkMatch.Prefix">
+            <span class="i">@i.Icon</span>@i.Label
+        </NavLink>
+    }
+</nav>
+
+@code {
+    public record NavItem(string Href, string Icon, string Label);
+    [Parameter, EditorRequired] public List<NavItem> Items { get; set; } = new();
+    [Inject] NavigationManager Nav { get; set; } = default!;
+    bool IsActive(string href)
+    {
+        var cur = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0];
+        return cur == href || cur.StartsWith(href + "/");
+    }
+}

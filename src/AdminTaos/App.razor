@@ -4,11 +4,11 @@
 
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(AuthLayout)" />
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(AuthShell)" />
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>
-        <LayoutView Layout="@typeof(AuthLayout)"><p>Page introuvable.</p></LayoutView>
+        <LayoutView Layout="@typeof(AuthShell)"><p>Page introuvable.</p></LayoutView>
     </NotFound>
 </Router>
 

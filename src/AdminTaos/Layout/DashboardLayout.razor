@@ -1,0 +1,45 @@
+@inherits LayoutComponentBase
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<div class="layout @(_drawer ? "drawer" : "")">
+    <div class="scrim" @onclick="Close"></div>
+    <Sidebar OnNavigate="Close" />
+    <div class="main">
+        <DashTopbar Title="@PageTitle" User="@(Auth.CurrentUser?.FullName ?? "")" OnBurger="Toggle" />
+        <div class="content">@Body</div>
+    </div>
+</div>
+
+@code {
+    bool _drawer;
+    void Toggle() => _drawer = !_drawer;
+    void Close() => _drawer = false;
+
+    string PageTitle
+    {
+        get
+        {
+            var p = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0].TrimEnd('/');
+            return p switch
+            {
+                "/m" or "/e" => "Tableau de bord",
+                "/m/events" or "/e/events" => "Events",
+                "/m/events/new" => "Nouvel event",
+                "/m/team" => "Équipe",
+                "/m/timesheets" => "Timesheets",
+                "/m/roles" => "Rôles",
+                "/m/profile" or "/e/profile" => "Profil",
+                "/e/hours" => "Mes heures",
+                _ when p.StartsWith("/m/events") => "Event",
+                _ when p.StartsWith("/m/team") => "Employé",
+                _ when p.StartsWith("/m/timesheets") => "Timesheet",
+                _ when p.StartsWith("/e/events") && p.EndsWith("/active") => "Shift en cours",
+                _ when p.StartsWith("/e/events") && p.EndsWith("/recap") => "Récapitulatif",
+                _ when p.StartsWith("/e/events") => "Event",
+                _ when p.StartsWith("/e/hours") => "Timesheet",
+                _ => "TAOS"
+            };
+        }
+    }
+}

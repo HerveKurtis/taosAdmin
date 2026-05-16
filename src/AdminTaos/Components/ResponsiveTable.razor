@@ -1,0 +1,45 @@
+@typeparam TItem
+
+<table class="rt">
+    <thead>
+        <tr>
+            @foreach (var c in Columns) { <th>@c.Header</th> }
+            @if (Action is not null) { <th></th> }
+        </tr>
+    </thead>
+    <tbody>
+        @if (!Items.Any())
+        {
+            <tr><td data-label="" colspan="@(Columns.Count + (Action is null ? 0 : 1))">
+                <div class="rt-empty">
+                    <span class="ic">@EmptyIcon</span>
+                    <div class="e-t">@EmptyTitle</div>
+                    @if (!string.IsNullOrWhiteSpace(EmptyHint)) { <div>@EmptyHint</div> }
+                </div>
+            </td></tr>
+        }
+        @foreach (var item in Items)
+        {
+            <tr class="@(RowClick.HasDelegate ? "clickable" : "")"
+                @onclick="@(() => RowClick.HasDelegate ? RowClick.InvokeAsync(item) : Task.CompletedTask)">
+                @foreach (var c in Columns)
+                {
+                    <td data-label="@c.Header">@c.Cell(item)</td>
+                }
+                @if (Action is not null) { <td data-label="">@Action(item)</td> }
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    public record Column(string Header, RenderFragment<TItem> Cell);
+
+    [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
+    [Parameter, EditorRequired] public List<Column> Columns { get; set; } = new();
+    [Parameter] public RenderFragment<TItem>? Action { get; set; }
+    [Parameter] public EventCallback<TItem> RowClick { get; set; }
+    [Parameter] public string EmptyIcon { get; set; } = "○";
+    [Parameter] public string EmptyTitle { get; set; } = "Rien à afficher";
+    [Parameter] public string? EmptyHint { get; set; }
+}

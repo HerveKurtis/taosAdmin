@@ -1,0 +1,14 @@
+@if (Href is null)
+{
+    <div class="stat"><div class="n">@Value</div><div class="l">@Label</div></div>
+}
+else
+{
+    <NavLink class="stat" href="@Href"><div class="n">@Value</div><div class="l">@Label</div></NavLink>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public string? Href { get; set; }
+}

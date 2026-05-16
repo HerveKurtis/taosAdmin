@@ -27,11 +27,15 @@
 }
 
 @code {
+    [SupplyParameterFromQuery(Name = "filter")]
+    public string? Filter { get; set; }
+
     string _tab = "active";
     List<Account> _emps = new();
     Dictionary<string,string> _roles = new();
     protected override async Task OnInitializedAsync()
     {
+        if (Filter == "pending") _tab = "pending";
         _emps = (await Data.GetAccountsAsync()).Where(a => a.Type == AccountType.Employee).ToList();
         _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
     }

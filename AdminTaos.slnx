@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AdminTaos/AdminTaos.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AdminTaos.Tests/AdminTaos.Tests.csproj" />
+  </Folder>
+</Solution>

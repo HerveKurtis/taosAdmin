@@ -3,17 +3,15 @@
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<TopBar />
-<h1>Connexion</h1>
-<p class="sub">Entre ton email, ou choisis un compte de test.</p>
+<h1 style="text-align:center;font-size:20px">Connexion</h1>
+<p class="sub" style="text-align:center">Entre ton email, ou choisis un compte de test.</p>
 
-<div class="field"><span>Email</span>
-    <input @bind="_email" placeholder="manager@taos.be" /></div>
-@if (_error) { <p class="pill bad" style="margin-top:10px">Email inconnu</p> }
-<button class="btn primary" style="margin-top:14px" @onclick="DoLogin">Se connecter</button>
-<a class="btn ghost" href="register">Créer un compte</a>
+<div class="field"><span>Email</span><input @bind="_email" placeholder="manager@taos.be" /></div>
+@if (_error) { <p class="pill bad" style="display:block;text-align:center;margin-top:10px">Email inconnu</p> }
+<button class="btn primary block" style="margin-top:14px" @onclick="DoLogin">Se connecter</button>
+<a class="btn ghost block" href="register">Créer un compte</a>
 
-<div class="lab">Comptes de test</div>
+<div class="lab" style="text-align:center">Comptes de test</div>
 @foreach (var a in _accounts)
 {
     <button class="card quick" @onclick="() => Quick(a.Email)">

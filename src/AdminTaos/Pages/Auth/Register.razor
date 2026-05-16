@@ -2,8 +2,8 @@
 @inject IDataService Data
 @inject NavigationManager Nav
 
-<TopBar ShowBack="true" Title="Inscription" BackTo="login" />
-<h1>Créer un compte</h1>
+<button class="backlink" @onclick='() => Nav.NavigateTo("login")'>‹ Connexion</button>
+<h1 style="font-size:20px">Créer un compte</h1>
 <p class="sub">Ton compte sera validé par un manager.</p>
 
 <div class="field"><span>Nom complet</span><input @bind="_name" /></div>
@@ -12,14 +12,13 @@
 <div class="lab">Rôle(s) souhaité(s)</div>
 @foreach (var r in _roles)
 {
-    <button class="card @(_selected.Contains(r.Id) ? "glow" : "")"
-            @onclick="() => Toggle(r.Id)">
+    <button class="card @(_selected.Contains(r.Id) ? "glow" : "")" @onclick="() => Toggle(r.Id)">
         <div class="t">@r.Name</div>
-        <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné" : "Toucher pour choisir")</div>
+        <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné ✓" : "Toucher pour choisir")</div>
     </button>
 }
-@if (_err) { <p class="pill bad" style="margin-top:10px">Remplis nom, email et au moins un rôle.</p> }
-<button class="btn primary" style="margin-top:14px" @onclick="Submit">S'inscrire</button>
+@if (_err) { <p class="pill bad" style="display:block;margin-top:10px">Remplis nom, email et au moins un rôle.</p> }
+<button class="btn primary block" style="margin-top:14px" @onclick="Submit">S'inscrire</button>
 
 @code {
     List<JobRole> _roles = new();

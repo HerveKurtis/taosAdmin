@@ -12,5 +12,6 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 
 builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddSingleton<IDataService, InMemoryDataService>();
+builder.Services.AddScoped<AuthState>();
 
 await builder.Build().RunAsync();

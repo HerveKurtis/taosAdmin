@@ -1,0 +1,40 @@
+@page "/m/team"
+@layout ManagerLayout
+@inject IDataService Data
+@inject NavigationManager Nav
+
+<TopBar />
+<h1>Équipe</h1>
+<div class="row2" style="margin-bottom:6px">
+    <button class="btn @(_tab=="active"?"primary":"ghost")" @onclick='() => _tab="active"'>Actifs</button>
+    <button class="btn @(_tab=="pending"?"primary":"ghost")" @onclick='() => _tab="pending"'>En attente</button>
+</div>
+<NavLink class="btn ghost" href="m/roles">Gérer les rôles</NavLink>
+
+@{ var list = _tab == "active"
+       ? _emps.Where(e => e.Status == AccountStatus.Active)
+       : _emps.Where(e => e.Status == AccountStatus.Pending); }
+@if (!list.Any())
+{
+    <div class="empty"><div class="ic">◴</div><div class="e-t">Personne ici</div></div>
+}
+@foreach (var e in list)
+{
+    <NavLink class="card" href="@($"m/team/{e.Id}")">
+        <div class="t">@e.FullName</div>
+        <div class="m">@RoleNames(e) · @(e.Status==AccountStatus.Active?"Actif":"En attente")</div>
+    </NavLink>
+}
+
+@code {
+    string _tab = "active";
+    List<Account> _emps = new();
+    Dictionary<string,string> _roles = new();
+    protected override async Task OnInitializedAsync()
+    {
+        _emps = (await Data.GetAccountsAsync()).Where(a => a.Type == AccountType.Employee).ToList();
+        _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
+    }
+    string RoleNames(Account a) => a.JobRoleIds.Count == 0 ? "—"
+        : string.Join(", ", a.JobRoleIds.Select(id => _roles.GetValueOrDefault(id,"?")));
+}

@@ -61,4 +61,29 @@ public class DataServiceTests
         var ts = await db.GetTimesheetForAssignmentAsync("asg-1");
         Assert.Equal("ts-1", ts!.Id);
     }
+
+    [Fact]
+    public async Task Validate_sets_status_and_timestamp()
+    {
+        var db = New();
+        var ts = await db.GetTimesheetAsync("ts-3");
+        ts!.Status = TimesheetStatus.Validated;
+        ts.ValidatedAt = new System.DateTime(2026,5,17);
+        await db.UpdateTimesheetAsync(ts);
+        var reloaded = await db.GetTimesheetAsync("ts-3");
+        Assert.Equal(TimesheetStatus.Validated, reloaded!.Status);
+        Assert.NotNull(reloaded.ValidatedAt);
+    }
+
+    [Fact]
+    public async Task Manager_adjusted_times_change_duration()
+    {
+        var db = New();
+        var ts = await db.GetTimesheetAsync("ts-3");
+        ts!.ManagerAdjustedStart = new System.DateTime(2026,5,12,15,30,0);
+        ts.ManagerAdjustedEnd   = new System.DateTime(2026,5,12,23,0,0);
+        await db.UpdateTimesheetAsync(ts);
+        Assert.Equal(System.TimeSpan.FromMinutes(450),
+            (await db.GetTimesheetAsync("ts-3"))!.Duration);
+    }
 }

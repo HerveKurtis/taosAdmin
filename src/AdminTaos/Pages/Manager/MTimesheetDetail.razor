@@ -1,0 +1,85 @@
+@page "/m/timesheets/{Id}"
+@layout ManagerLayout
+@inject IDataService Data
+@inject NavigationManager Nav
+
+@if (_ts is null) { <TopBar ShowBack="true" Title="Timesheet" BackTo="m/timesheets" /><p class="sub">Introuvable.</p> }
+else
+{
+    <TopBar ShowBack="true" Title="Timesheet" BackTo="m/timesheets" />
+    <div class="card glow">
+        <div class="t">@_who — @_role</div>
+        <div class="m">@_eventName · @_eventDate.Fmt()</div>
+    </div>
+
+    <div class="lab">Heures (modifiables)</div>
+    <div class="field"><span>Début</span>
+        <input type="time" value="@_start.ToString("HH\\:mm")" @onchange="OnStart" /></div>
+    <div class="field"><span>Fin</span>
+        <input type="time" value="@_end.ToString("HH\\:mm")" @onchange="OnEnd" /></div>
+    <div class="field"><span>Durée</span><b style="color:var(--gold)">@Dur()</b></div>
+    <span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span>
+
+    @if (_ts.Status is TimesheetStatus.Sent or TimesheetStatus.Validated or TimesheetStatus.Rejected)
+    {
+        <div class="lab">Refuser — motif</div>
+        <div class="field"><span>Motif</span><input @bind="_reason" placeholder="Heures incorrectes…" /></div>
+        <div class="row2" style="margin-top:8px">
+            <button class="btn danger" @onclick="Reject">Refuser</button>
+            <button class="btn primary" @onclick="Validate">Valider</button>
+        </div>
+        @if (_saved) { <p class="pill ok" style="margin-top:10px">Enregistré ✓</p> }
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    Timesheet? _ts;
+    string _who = "", _role = "", _eventName = "", _reason = "";
+    DateOnly _eventDate;
+    DateTime _start, _end;
+    bool _saved;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _ts = await Data.GetTimesheetAsync(Id);
+        if (_ts is null) return;
+        var asg = (await Data.GetAssignmentsAsync()).FirstOrDefault(a => a.Id == _ts.AssignmentId);
+        if (asg is not null)
+        {
+            _who = (await Data.GetAccountAsync(asg.AccountId))?.FullName ?? "?";
+            _role = (await Data.GetJobRolesAsync()).FirstOrDefault(r => r.Id == asg.JobRoleId)?.Name ?? "?";
+            var ev = await Data.GetEventAsync(asg.EventId);
+            _eventName = ev?.Name ?? "Event";
+            _eventDate = ev?.Date ?? default;
+        }
+        _start = _ts.EffectiveStart ?? DateTime.Today;
+        _end   = _ts.EffectiveEnd ?? DateTime.Today;
+        _reason = _ts.RejectionReason ?? "";
+    }
+
+    void OnStart(ChangeEventArgs e)
+    { if (TimeOnly.TryParse(e.Value?.ToString(), out var t)) _start = _start.Date + t.ToTimeSpan(); }
+    void OnEnd(ChangeEventArgs e)
+    { if (TimeOnly.TryParse(e.Value?.ToString(), out var t)) _end = _end.Date + t.ToTimeSpan(); }
+    string Dur() => (_end > _start ? (TimeSpan?)(_end - _start) : null).Fmt();
+
+    async Task Validate()
+    {
+        _ts!.ManagerAdjustedStart = _start;
+        _ts.ManagerAdjustedEnd = _end;
+        _ts.Status = TimesheetStatus.Validated;
+        _ts.ValidatedAt = DateTime.Now;
+        _ts.RejectionReason = null;
+        await Data.UpdateTimesheetAsync(_ts);
+        _saved = true;
+    }
+
+    async Task Reject()
+    {
+        _ts!.Status = TimesheetStatus.Rejected;
+        _ts.RejectionReason = string.IsNullOrWhiteSpace(_reason) ? "Non précisé" : _reason;
+        await Data.UpdateTimesheetAsync(_ts);
+        _saved = true;
+    }
+}

@@ -1,27 +1,27 @@
 @page "/m/timesheets"
-@layout ManagerLayout
+@layout DashboardLayout
 @inject IDataService Data
+@inject NavigationManager Nav
 
-<TopBar ShowBack="true" Title="Timesheets" BackTo="m" />
+<button class="backlink" @onclick='() => Nav.NavigateTo("m")'>‹ Tableau de bord</button>
 <h1>Timesheets</h1>
-<div class="row2" style="margin-bottom:6px">
+<div class="row2" style="max-width:320px;margin:14px 0">
     <button class="btn @(_tab=="sent"?"primary":"ghost")" @onclick='() => _tab="sent"'>À valider</button>
     <button class="btn @(_tab=="all"?"primary":"ghost")" @onclick='() => _tab="all"'>Toutes</button>
 </div>
 
-@{ var rows = _tab == "sent" ? _rows.Where(r => r.ts.Status == TimesheetStatus.Sent) : _rows; }
-@if (!rows.Any())
-{
-    <EmptyState Icon="◷" Title="Rien à afficher" />
-}
-@foreach (var r in rows)
-{
-    <NavLink class="card" href="@($"m/timesheets/{r.ts.Id}")">
-        <div class="t">@r.who — @r.ev.Name</div>
-        <div class="m">@r.ev.Date.Fmt() · @r.ts.Duration.Fmt()
-            · <span class="@r.ts.Status.PillClass()">@r.ts.Status.StatusFr()</span></div>
-    </NavLink>
-}
+@{ var rows = (_tab == "sent" ? _rows.Where(r => r.ts.Status == TimesheetStatus.Sent) : _rows).ToList(); }
+@{ var _tsCols = new List<ResponsiveTable<(Timesheet ts, ServiceEvent ev, string who)>.Column> {
+    new("Employé", r => @<b>@r.who</b>),
+    new("Event", r => @<text>@r.ev.Name</text>),
+    new("Date", r => @<text>@r.ev.Date.Fmt()</text>),
+    new("Durée", r => @<text>@r.ts.Duration.Fmt()</text>),
+    new("Statut", r => @<span class="@r.ts.Status.PillClass()">@r.ts.Status.StatusFr()</span>)
+}; }
+<ResponsiveTable TItem="(Timesheet ts, ServiceEvent ev, string who)" Items="rows"
+    EmptyIcon="≣" EmptyTitle="Rien à afficher"
+    RowClick="@(r => Nav.NavigateTo($"m/timesheets/{r.ts.Id}"))"
+    Columns="_tsCols" />
 
 @code {
     string _tab = "sent";

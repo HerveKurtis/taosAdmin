@@ -1,15 +1,15 @@
 @page "/m/profile"
-@layout ManagerLayout
+@layout DashboardLayout
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<TopBar />
 <h1>Profil</h1>
-<div class="card glow">
-    <div class="t">@Auth.CurrentUser?.FullName</div>
-    <div class="m">@Auth.CurrentUser?.Email<br/>Manager</div>
+<div class="panel">
+    <div class="field"><span>Nom</span><b>@Auth.CurrentUser?.FullName</b></div>
+    <div class="field"><span>Email</span><b>@Auth.CurrentUser?.Email</b></div>
+    <div class="field"><span>Rôle</span><b>Manager</b></div>
 </div>
-<button class="btn ghost" @onclick="Logout">Se déconnecter</button>
+<button class="btn ghost" style="margin-top:16px" @onclick="Logout">Se déconnecter</button>
 
 @code {
     async Task Logout() { await Auth.LogoutAsync(); Nav.NavigateTo("login", replace:true); }

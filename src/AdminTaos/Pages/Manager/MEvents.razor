@@ -1,23 +1,24 @@
 @page "/m/events"
-@layout ManagerLayout
+@layout DashboardLayout
 @inject IDataService Data
+@inject NavigationManager Nav
 
-<TopBar />
-<h1>Events</h1>
-<p class="sub">@_events.Count event(s)</p>
-<NavLink class="btn primary" href="m/events/new">+ Nouvel event</NavLink>
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <div><h1>Events</h1><p class="sub" style="margin:0">@_events.Count event(s)</p></div>
+    <NavLink class="btn primary" href="m/events/new">+ Nouvel event</NavLink>
+</div>
+<div style="height:16px"></div>
 
-@if (_events.Count == 0)
-{
-    <EmptyState Icon="▦" Title="Aucun event" Hint="Crée ton premier event." />
-}
-@foreach (var e in _events)
-{
-    <NavLink class="card" href="@($"m/events/{e.Id}")">
-        <div class="t">@e.Name</div>
-        <div class="m">@e.Date.Fmt() · @e.Venue · @StatusFr(e.Status)</div>
-    </NavLink>
-}
+@{ var _eventsCols = new List<ResponsiveTable<ServiceEvent>.Column> {
+    new("Event", e => @<b>@e.Name</b>),
+    new("Date", e => @<text>@e.Date.Fmt()</text>),
+    new("Lieu", e => @<text>@e.Venue</text>),
+    new("Statut", e => @<span class="pill @(e.Status==EventStatus.Past?"wait":"")">@StatusFr(e.Status)</span>)
+}; }
+<ResponsiveTable TItem="ServiceEvent" Items="_events"
+    EmptyIcon="◷" EmptyTitle="Aucun event" EmptyHint="Crée ton premier event."
+    RowClick="@(e => Nav.NavigateTo($"m/events/{e.Id}"))"
+    Columns="_eventsCols" />
 
 @code {
     List<ServiceEvent> _events = new();

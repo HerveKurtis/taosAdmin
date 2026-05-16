@@ -1,33 +1,46 @@
 @page "/m/events/{Id}"
-@layout ManagerLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject NavigationManager Nav
 
-@if (_e is null) { <TopBar ShowBack="true" Title="Event" BackTo="m/events" /><p class="sub">Introuvable.</p> }
+<button class="backlink" @onclick='() => Nav.NavigateTo("m/events")'>‹ Events</button>
+
+@if (_e is null)
+{
+    <div class="panel"><p class="sub">Introuvable.</p></div>
+}
 else
 {
-    <TopBar ShowBack="true" Title="@_e.Name" BackTo="m/events" />
-    <div class="card glow">
-        <div class="t">@_e.Name</div>
+    <h1>@_e.Name</h1>
+    <div class="panel">
         <div class="m">@_e.Venue — @_e.Address<br/>@_e.Date.Fmt() · @_e.MeetingTime.Fmt() → @_e.ExpectedEndTime.Fmt()
         @if(!string.IsNullOrWhiteSpace(_e.DressCode)){<text><br/>Tenue : @_e.DressCode</text>}
         @if(!string.IsNullOrWhiteSpace(_e.OnSiteContact)){<text><br/>Contact : @_e.OnSiteContact</text>}</div>
     </div>
 
     <div class="lab">Effectif par rôle</div>
-    @foreach (var rn in _e.RoleNeeds)
-    {
-        var c = _confirmed.Count(a => a.JobRoleId == rn.JobRoleId);
-        <div class="card"><div class="t">@RoleName(rn.JobRoleId)</div>
-            <div class="m">@c / @rn.CountNeeded assigné(s) · @rn.HourlyRate €/h</div></div>
-    }
+    <div class="panel">
+        @foreach (var rn in _e.RoleNeeds)
+        {
+            var c = _confirmed.Count(a => a.JobRoleId == rn.JobRoleId);
+            <div class="field"><span>@RoleName(rn.JobRoleId)</span>
+                <b>@c / @rn.CountNeeded assigné(s) · @rn.HourlyRate €/h</b></div>
+        }
+    </div>
 
     <div class="lab">Personnel assigné</div>
-    @if (_confirmed.Count == 0) { <div class="card"><div class="m">Personne pour l'instant</div></div> }
-    @foreach (var a in _confirmed)
+    @if (_confirmed.Count == 0)
     {
-        <div class="card"><div class="t">@Name(a.AccountId)</div>
-            <div class="m">@RoleName(a.JobRoleId)</div></div>
+        <div class="panel"><div class="m">Personne pour l'instant</div></div>
+    }
+    else
+    {
+        <div class="panel">
+        @foreach (var a in _confirmed)
+        {
+            <div class="field"><span>@Name(a.AccountId)</span><b>@RoleName(a.JobRoleId)</b></div>
+        }
+        </div>
     }
 
     @if (_requests.Count > 0)
@@ -35,10 +48,10 @@ else
         <div class="lab">Demandes de participation</div>
         @foreach (var a in _requests)
         {
-            <div class="card">
+            <div class="panel">
                 <div class="t">@Name(a.AccountId)</div>
                 <div class="m">@RoleName(a.JobRoleId) · demande à rejoindre</div>
-                <div class="row2" style="margin-top:10px">
+                <div class="row2" style="margin-top:12px">
                     <button class="btn danger" @onclick="() => Decide(a, false)">Refuser</button>
                     <button class="btn primary" @onclick="() => Decide(a, true)">Accepter</button>
                 </div>
@@ -46,8 +59,10 @@ else
         }
     }
 
-    <NavLink class="btn ghost" href="@($"m/events/{_e.Id}/assign")">Assigner du personnel</NavLink>
-    <NavLink class="btn ghost" href="@($"m/events/{_e.Id}/edit")">Éditer l'event</NavLink>
+    <div class="actions">
+        <NavLink class="btn ghost" href="@($"m/events/{_e.Id}/assign")">Assigner du personnel</NavLink>
+        <NavLink class="btn ghost" href="@($"m/events/{_e.Id}/edit")">Éditer l'event</NavLink>
+    </div>
 }
 
 @code {

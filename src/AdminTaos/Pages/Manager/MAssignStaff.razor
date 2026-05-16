@@ -1,31 +1,30 @@
 @page "/m/events/{Id}/assign"
-@layout ManagerLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject NavigationManager Nav
 
-<TopBar ShowBack="true" Title="Assigner" BackTo="@($"m/events/{Id}")" />
+<button class="backlink" @onclick='() => Nav.NavigateTo($"m/events/{Id}")'>‹ Détail event</button>
 <h1>Assigner du personnel</h1>
 <p class="sub">@_event?.Name</p>
 
 @foreach (var r in _eventRoles)
 {
     <div class="lab">@r.Name</div>
+    @if (!_employees.Any(e => e.JobRoleIds.Contains(r.Id)))
+    {
+        <div class="panel"><div class="m">Aucun employé actif pour ce rôle</div></div>
+    }
     @foreach (var emp in _employees.Where(e => e.JobRoleIds.Contains(r.Id)))
     {
         var already = _assigned.Any(a => a.AccountId == emp.Id && a.JobRoleId == r.Id);
-        <div class="card">
-            <div class="t">@emp.FullName</div>
-            <div class="m">@(already ? "Déjà assigné" : "Disponible")</div>
+        <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <div><div class="t">@emp.FullName</div>
+                <div class="m">@(already ? "Déjà assigné" : "Disponible")</div></div>
             @if (!already)
             {
-                <button class="btn ghost" style="margin-top:8px"
-                        @onclick="() => Assign(emp.Id, r.Id)">Assigner</button>
+                <button class="btn primary" @onclick="() => Assign(emp.Id, r.Id)">Assigner</button>
             }
         </div>
-    }
-    @if (!_employees.Any(e => e.JobRoleIds.Contains(r.Id)))
-    {
-        <div class="card"><div class="m">Aucun employé actif pour ce rôle</div></div>
     }
 }
 

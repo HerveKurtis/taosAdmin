@@ -1,21 +1,25 @@
 @page "/m/team/{Id}"
-@layout ManagerLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject NavigationManager Nav
 
-@if (_a is null) { <TopBar ShowBack="true" Title="Employé" BackTo="m/team" /><p class="sub">Introuvable.</p> }
+<button class="backlink" @onclick='() => Nav.NavigateTo("m/team")'>‹ Équipe</button>
+
+@if (_a is null)
+{
+    <div class="panel"><p class="sub">Introuvable.</p></div>
+}
 else
 {
-    <TopBar ShowBack="true" Title="@_a.FullName" BackTo="m/team" />
-    <div class="card glow">
-        <div class="t">@_a.FullName</div>
-        <div class="m">@_a.Email<br/>Rôles : @RoleNames()<br/>
-            Statut : <span class="@StatusPill()">@StatusFr()</span></div>
+    <h1>@_a.FullName</h1>
+    <div class="panel">
+        <div class="field"><span>Email</span><b>@_a.Email</b></div>
+        <div class="field"><span>Rôles</span><b>@RoleNames()</b></div>
+        <div class="field"><span>Statut</span><b><span class="@StatusPill()">@StatusFr()</span></b></div>
     </div>
-
     @if (_a.Status == AccountStatus.Pending)
     {
-        <div class="row2" style="margin-top:12px">
+        <div class="row2" style="max-width:420px">
             <button class="btn danger" @onclick="() => Set(AccountStatus.Rejected)">Refuser</button>
             <button class="btn primary" @onclick="() => Set(AccountStatus.Active)">Valider le compte</button>
         </div>

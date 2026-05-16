@@ -1,43 +1,42 @@
 @page "/m/events/new"
 @page "/m/events/{Id}/edit"
-@layout ManagerLayout
+@layout DashboardLayout
 @inject IDataService Data
 @inject NavigationManager Nav
 
-<TopBar ShowBack="true" Title="@(_isNew ? "Nouvel event" : "Éditer")" BackTo="m/events" />
+<button class="backlink" @onclick='() => Nav.NavigateTo("m/events")'>‹ Events</button>
 <h1>@(_isNew ? "Nouvel event" : _e.Name)</h1>
 
-<div class="field"><span>Nom</span><input @bind="_e.Name" /></div>
-<div class="field"><span>Lieu</span><input @bind="_e.Venue" /></div>
-<div class="field"><span>Adresse</span><input @bind="_e.Address" /></div>
-<div class="field"><span>Date</span><input type="date" @bind="_date" /></div>
-<div class="field"><span>RDV</span><input type="time" @bind="_meet" /></div>
-<div class="field"><span>Fin prévue</span><input type="time" @bind="_end" /></div>
-<div class="field"><span>Tenue</span><input @bind="_e.DressCode" /></div>
-<div class="field"><span>Consignes</span><input @bind="_e.Instructions" /></div>
-<div class="field"><span>Contact sur place</span><input @bind="_e.OnSiteContact" /></div>
-<div class="field"><span>Ouvert à l'inscription</span>
-    <ToggleSwitch Value="_e.IsOpenForSignup"
-        ValueChanged="v => _e.IsOpenForSignup = v" /></div>
+<div class="panel">
+    <div class="field"><span>Nom</span><input @bind="_e.Name" /></div>
+    <div class="field"><span>Lieu</span><input @bind="_e.Venue" /></div>
+    <div class="field"><span>Adresse</span><input @bind="_e.Address" /></div>
+    <div class="field"><span>Date</span><input type="date" @bind="_date" /></div>
+    <div class="field"><span>RDV</span><input type="time" @bind="_meet" /></div>
+    <div class="field"><span>Fin prévue</span><input type="time" @bind="_end" /></div>
+    <div class="field"><span>Tenue</span><input @bind="_e.DressCode" /></div>
+    <div class="field"><span>Consignes</span><input @bind="_e.Instructions" /></div>
+    <div class="field"><span>Contact sur place</span><input @bind="_e.OnSiteContact" /></div>
+    <div class="field"><span>Ouvert à l'inscription</span>
+        <ToggleSwitch Value="_e.IsOpenForSignup" ValueChanged="v => _e.IsOpenForSignup = v" /></div>
+</div>
 
 <div class="lab">Effectif & rémunération par rôle</div>
 @foreach (var r in _roles)
 {
     var need = _e.RoleNeeds.FirstOrDefault(n => n.JobRoleId == r.Id);
-    <div class="card">
+    <div class="panel">
         <div class="t">@r.Name</div>
         <div class="field"><span>Personnes</span>
-            <Stepper Value="need?.CountNeeded ?? 0"
-                     ValueChanged="v => SetCount(r.Id, v)" /></div>
+            <Stepper Value="need?.CountNeeded ?? 0" ValueChanged="v => SetCount(r.Id, v)" /></div>
         <div class="field"><span>Taux €/h</span>
-            <input type="number" style="max-width:80px"
-                   value="@((need?.HourlyRate ?? 0m))"
+            <input type="number" style="max-width:90px" value="@((need?.HourlyRate ?? 0m))"
                    @onchange="e => SetRate(r.Id, e.Value)" /></div>
     </div>
 }
 
-@if (_err) { <p class="pill bad">Le nom est obligatoire.</p> }
-<button class="btn primary" @onclick="Save">@(_isNew ? "Créer l'event" : "Enregistrer")</button>
+@if (_err) { <p class="pill bad" style="display:block;margin:12px 0">Le nom est obligatoire.</p> }
+<button class="btn primary block" @onclick="Save">@(_isNew ? "Créer l'event" : "Enregistrer")</button>
 
 @code {
     [Parameter] public string? Id { get; set; }

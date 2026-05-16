@@ -1,35 +1,40 @@
 @page "/m/roles"
-@layout ManagerLayout
+@layout DashboardLayout
 @inject IDataService Data
+@inject NavigationManager Nav
 
-<TopBar ShowBack="true" Title="Rôles" BackTo="m/team" />
+<button class="backlink" @onclick='() => Nav.NavigateTo("m/team")'>‹ Équipe</button>
 <h1>Gérer les rôles</h1>
 
 @foreach (var r in _roles)
 {
-    <div class="card">
+    <div class="panel">
         @if (_editId == r.Id)
         {
-            <input @bind="_editName" />
-            <div class="row2" style="margin-top:8px">
+            <div class="field"><span>Nom</span><input @bind="_editName" /></div>
+            <div class="row2" style="margin-top:10px">
                 <button class="btn ghost" @onclick="() => _editId=null">Annuler</button>
                 <button class="btn primary" @onclick="() => SaveEdit(r)">OK</button>
             </div>
         }
         else
         {
-            <div class="t">@r.Name</div>
-            <div class="row2" style="margin-top:8px">
-                <button class="btn ghost" @onclick="() => StartEdit(r)">Éditer</button>
-                <button class="btn danger" @onclick="() => Delete(r)">Supprimer</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+                <div class="t">@r.Name</div>
+                <div class="row2" style="max-width:240px">
+                    <button class="btn ghost" @onclick="() => StartEdit(r)">Éditer</button>
+                    <button class="btn danger" @onclick="() => Delete(r)">Supprimer</button>
+                </div>
             </div>
         }
     </div>
 }
 
 <div class="lab">Nouveau rôle</div>
-<div class="field"><span>Nom</span><input @bind="_newName" /></div>
-<button class="btn primary" @onclick="Add">Ajouter le rôle</button>
+<div class="panel">
+    <div class="field"><span>Nom</span><input @bind="_newName" /></div>
+    <button class="btn primary block" style="margin-top:12px" @onclick="Add">Ajouter le rôle</button>
+</div>
 
 @code {
     List<JobRole> _roles = new();

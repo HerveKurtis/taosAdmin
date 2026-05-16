@@ -1,32 +1,37 @@
 @page "/m"
-@layout ManagerLayout
+@layout DashboardLayout
 @inject IDataService Data
+@inject NavigationManager Nav
 
-<TopBar />
 <h1>À traiter</h1>
 <p class="sub">Tableau de bord manager</p>
 
-<NavLink class="card" href="m/team?filter=pending">
-    <div class="t">@_pendingAccounts comptes à valider</div>
-    <div class="m">@_pendingAccountNames</div>
-</NavLink>
-<NavLink class="card" href="m/events">
-    <div class="t">@_joinRequests demande(s) de participation</div>
-    <div class="m">À valider sur les events ouverts</div>
-</NavLink>
-<NavLink class="card" href="m/timesheets">
-    <div class="t">@_pendingTimesheets timesheet(s) à valider</div>
-    <div class="m">Reçues, en attente de validation</div>
-</NavLink>
+<div class="stats">
+    <StatCard Value="@_pendingAccounts.ToString()" Label="Comptes à valider" Href="m/team?filter=pending" />
+    <StatCard Value="@_joinRequests.ToString()" Label="Demandes de participation" Href="m/events" />
+    <StatCard Value="@_pendingTimesheets.ToString()" Label="Timesheets à valider" Href="m/timesheets" />
+    <StatCard Value="@_upcoming.Count.ToString()" Label="Events à venir" Href="m/events" />
+</div>
 
-<SectionLabel Text="Prochains events" />
-@if (_upcoming.Count == 0) { <div class="card"><div class="m">Aucun event à venir</div></div> }
-@foreach (var e in _upcoming)
+<div class="lab">Comptes à valider</div>
+<div class="card"><div class="m">@_pendingAccountNames</div></div>
+
+@{ var _upcomingCols = new List<ResponsiveTable<ServiceEvent>.Column> {
+    new("Event", e => @<b>@e.Name</b>),
+    new("Date", e => @<text>@e.Date.Fmt()</text>),
+    new("Lieu", e => @<text>@e.Venue</text>)
+}; }
+
+<div class="lab">Prochains events</div>
+@if (_upcoming.Count == 0)
 {
-    <NavLink class="card glow" href="@($"m/events/{e.Id}")">
-        <div class="t">@e.Name</div>
-        <div class="m">@e.Date.Fmt() · @e.Venue</div>
-    </NavLink>
+    <div class="card"><div class="m">Aucun event à venir</div></div>
+}
+else
+{
+    <ResponsiveTable TItem="ServiceEvent" Items="_upcoming"
+        RowClick="@(e => Nav.NavigateTo($"m/events/{e.Id}"))"
+        Columns="_upcomingCols" />
 }
 
 @code {

@@ -1,0 +1,22 @@
+@page "/"
+@page "/splash"
+@inject NavigationManager Nav
+@inject AuthState Auth
+
+<div class="app-shell"><div class="content no-nav"
+     style="display:flex;align-items:center;justify-content:center">
+    <div style="text-align:center">
+        <div class="wm" style="font-size:34px;font-family:var(--pf)">TAOS</div>
+        <div class="sub" style="letter-spacing:3px;margin-top:8px">THE ART OF SERVICE</div>
+    </div>
+</div></div>
+
+@code {
+    protected override void OnAfterRender(bool first)
+    {
+        if (first)
+            Nav.NavigateTo(Auth.IsAuthenticated
+                ? (Auth.CurrentUser!.Type == AccountType.Manager ? "m" : "e")
+                : "login", replace: true);
+    }
+}

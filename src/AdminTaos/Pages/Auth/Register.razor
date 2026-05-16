@@ -1,0 +1,42 @@
+@page "/register"
+@inject IDataService Data
+@inject NavigationManager Nav
+
+<TopBar ShowBack="true" Title="Inscription" BackTo="login" />
+<h1>Créer un compte</h1>
+<p class="sub">Ton compte sera validé par un manager.</p>
+
+<div class="field"><span>Nom complet</span><input @bind="_name" /></div>
+<div class="field"><span>Email</span><input @bind="_email" /></div>
+<div class="field"><span>Mot de passe</span><input type="password" @bind="_pwd" /></div>
+<div class="lab">Rôle(s) souhaité(s)</div>
+@foreach (var r in _roles)
+{
+    <button class="card @(_selected.Contains(r.Id) ? "glow" : "")"
+            @onclick="() => Toggle(r.Id)">
+        <div class="t">@r.Name</div>
+        <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné" : "Toucher pour choisir")</div>
+    </button>
+}
+@if (_err) { <p class="pill bad" style="margin-top:10px">Remplis nom, email et au moins un rôle.</p> }
+<button class="btn primary" style="margin-top:14px" @onclick="Submit">S'inscrire</button>
+
+@code {
+    List<JobRole> _roles = new();
+    readonly HashSet<string> _selected = new();
+    string _name = "", _email = "", _pwd = "";
+    bool _err;
+
+    protected override async Task OnInitializedAsync() => _roles = await Data.GetJobRolesAsync();
+    void Toggle(string id) { if (!_selected.Add(id)) _selected.Remove(id); }
+
+    async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_email) || _selected.Count == 0)
+        { _err = true; return; }
+        await Data.CreateAccountAsync(new Account {
+            FullName = _name, Email = _email, Type = AccountType.Employee,
+            Status = AccountStatus.Pending, JobRoleIds = _selected.ToList() });
+        Nav.NavigateTo("login");
+    }
+}

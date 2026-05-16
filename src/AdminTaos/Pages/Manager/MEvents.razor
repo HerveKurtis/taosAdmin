@@ -9,8 +9,7 @@
 
 @if (_events.Count == 0)
 {
-    <div class="empty"><div class="ic">▦</div><div class="e-t">Aucun event</div>
-        <p>Crée ton premier event.</p></div>
+    <EmptyState Icon="▦" Title="Aucun event" Hint="Crée ton premier event." />
 }
 @foreach (var e in _events)
 {

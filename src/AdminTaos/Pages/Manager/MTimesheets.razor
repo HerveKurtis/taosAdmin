@@ -12,7 +12,7 @@
 @{ var rows = _tab == "sent" ? _rows.Where(r => r.ts.Status == TimesheetStatus.Sent) : _rows; }
 @if (!rows.Any())
 {
-    <div class="empty"><div class="ic">◷</div><div class="e-t">Rien à afficher</div></div>
+    <EmptyState Icon="◷" Title="Rien à afficher" />
 }
 @foreach (var r in rows)
 {

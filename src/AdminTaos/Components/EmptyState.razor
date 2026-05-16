@@ -1,0 +1,10 @@
+<div class="empty">
+    <div class="ic">@Icon</div>
+    <div class="e-t">@Title</div>
+    @if (!string.IsNullOrWhiteSpace(Hint)) { <p>@Hint</p> }
+</div>
+@code {
+    [Parameter] public string Icon { get; set; } = "○";
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Hint { get; set; }
+}

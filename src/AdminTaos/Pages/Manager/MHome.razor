@@ -19,7 +19,7 @@
     <div class="m">Reçues, en attente de validation</div>
 </NavLink>
 
-<div class="lab">Prochains events</div>
+<SectionLabel Text="Prochains events" />
 @if (_upcoming.Count == 0) { <div class="card"><div class="m">Aucun event à venir</div></div> }
 @foreach (var e in _upcoming)
 {

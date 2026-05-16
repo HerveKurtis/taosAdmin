@@ -8,8 +8,7 @@
 
 @if (_rows.Count == 0)
 {
-    <div class="empty"><div class="ic">◷</div><div class="e-t">Aucune prestation</div>
-        <p>Tes timesheets apparaîtront ici.</p></div>
+    <EmptyState Icon="◷" Title="Aucune prestation" Hint="Tes timesheets apparaîtront ici." />
 }
 @foreach (var r in _rows)
 {

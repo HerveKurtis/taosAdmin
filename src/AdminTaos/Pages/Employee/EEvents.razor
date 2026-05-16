@@ -6,7 +6,7 @@
 <TopBar />
 <h1>Events</h1>
 
-<div class="lab">Mes events</div>
+<SectionLabel Text="Mes events" />
 @if (_mine.Count == 0) { <div class="card"><div class="m">Aucun event assigné</div></div> }
 @foreach (var e in _mine)
 {
@@ -15,7 +15,7 @@
     </NavLink>
 }
 
-<div class="lab">Events ouverts à rejoindre</div>
+<SectionLabel Text="Events ouverts à rejoindre" />
 @if (_open.Count == 0) { <div class="card"><div class="m">Aucun event ouvert</div></div> }
 @foreach (var e in _open)
 {

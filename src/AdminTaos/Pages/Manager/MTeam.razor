@@ -16,7 +16,7 @@
        : _emps.Where(e => e.Status == AccountStatus.Pending); }
 @if (!list.Any())
 {
-    <div class="empty"><div class="ic">◴</div><div class="e-t">Personne ici</div></div>
+    <EmptyState Icon="◴" Title="Personne ici" />
 }
 @foreach (var e in list)
 {

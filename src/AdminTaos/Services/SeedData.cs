@@ -83,7 +83,28 @@ public static class SeedData
                 new() { JobRoleId = RoleServer, CountNeeded = 2, HourlyRate = 14m },
             }
         };
-        var events = new List<ServiceEvent> { gala, cocktail, todayEvt, pastEvt };
+        var pastEvt2 = new ServiceEvent {
+            Id = "evt-past2", Name = "Soirée corporate", Venue = "BOZAR",
+            Address = "Rue Ravenstein 23, Bruxelles", Date = today.AddDays(-12),
+            MeetingTime = new TimeOnly(18,0), ExpectedEndTime = new TimeOnly(23,30),
+            DressCode = "Noir élégant", Instructions = "", OnSiteContact = "",
+            IsOpenForSignup = false, Status = EventStatus.Past,
+            RoleNeeds = new() {
+                new() { JobRoleId = RoleServer, CountNeeded = 2, HourlyRate = 14m },
+                new() { JobRoleId = RoleHost,   CountNeeded = 1, HourlyRate = 15m },
+            }
+        };
+        var pastEvt3 = new ServiceEvent {
+            Id = "evt-past3", Name = "Brunch dominical", Venue = "The Hoxton",
+            Address = "Square Victoria Régina 1, Bruxelles", Date = today.AddDays(-3),
+            MeetingTime = new TimeOnly(9,30), ExpectedEndTime = new TimeOnly(15,0),
+            DressCode = "Tenue de ville", Instructions = "", OnSiteContact = "",
+            IsOpenForSignup = false, Status = EventStatus.Past,
+            RoleNeeds = new() {
+                new() { JobRoleId = RoleServer, CountNeeded = 1, HourlyRate = 14m },
+            }
+        };
+        var events = new List<ServiceEvent> { gala, cocktail, todayEvt, pastEvt, pastEvt2, pastEvt3 };
 
         var aGalaServer = new Assignment { Id = "asg-1", EventId = gala.Id,
             AccountId = EmpActiveServer, JobRoleId = RoleServer,
@@ -97,7 +118,17 @@ public static class SeedData
         var aPastServer = new Assignment { Id = "asg-4", EventId = pastEvt.Id,
             AccountId = EmpActiveServer, JobRoleId = RoleServer,
             Source = AssignmentSource.AssignedByManager, Status = AssignmentStatus.Confirmed };
-        var assignments = new List<Assignment> { aGalaServer, aCocktailReq, aTodayHost, aPastServer };
+        var aP2Host = new Assignment { Id = "asg-5", EventId = pastEvt2.Id,
+            AccountId = EmpActiveHost, JobRoleId = RoleHost,
+            Source = AssignmentSource.AssignedByManager, Status = AssignmentStatus.Confirmed };
+        var aP2Server = new Assignment { Id = "asg-6", EventId = pastEvt2.Id,
+            AccountId = EmpActiveServer, JobRoleId = RoleServer,
+            Source = AssignmentSource.AssignedByManager, Status = AssignmentStatus.Confirmed };
+        var aP3Server = new Assignment { Id = "asg-7", EventId = pastEvt3.Id,
+            AccountId = EmpActiveServer, JobRoleId = RoleServer,
+            Source = AssignmentSource.AssignedByManager, Status = AssignmentStatus.Confirmed };
+        var assignments = new List<Assignment> { aGalaServer, aCocktailReq, aTodayHost, aPastServer,
+            aP2Host, aP2Server, aP3Server };
 
         var timesheets = new List<Timesheet>
         {
@@ -111,6 +142,26 @@ public static class SeedData
                     StartedAt = DateTime.Today.AddDays(-6).AddHours(15),
                     EndedAt   = DateTime.Today.AddDays(-6).AddHours(23).AddMinutes(12),
                     SentAt = DateTime.Today.AddDays(-5), Status = TimesheetStatus.Sent },
+            // Past event 2 — validated by manager (with adjusted times)
+            new() { Id = "ts-4", AssignmentId = aP2Host.Id,
+                    StartedAt = DateTime.Today.AddDays(-12).AddHours(18).AddMinutes(3),
+                    EndedAt   = DateTime.Today.AddDays(-12).AddHours(23).AddMinutes(40),
+                    ManagerAdjustedStart = DateTime.Today.AddDays(-12).AddHours(18),
+                    ManagerAdjustedEnd   = DateTime.Today.AddDays(-12).AddHours(23).AddMinutes(30),
+                    SentAt = DateTime.Today.AddDays(-11),
+                    ValidatedAt = DateTime.Today.AddDays(-10), Status = TimesheetStatus.Validated },
+            // Past event 2 — rejected by manager (with reason)
+            new() { Id = "ts-5", AssignmentId = aP2Server.Id,
+                    StartedAt = DateTime.Today.AddDays(-12).AddHours(18),
+                    EndedAt   = DateTime.Today.AddDays(-12).AddHours(22),
+                    SentAt = DateTime.Today.AddDays(-11),
+                    RejectionReason = "Heures de fin incohérentes, merci de corriger.",
+                    Status = TimesheetStatus.Rejected },
+            // Past event 3 — finished, to send (not yet sent)
+            new() { Id = "ts-6", AssignmentId = aP3Server.Id,
+                    StartedAt = DateTime.Today.AddDays(-3).AddHours(9).AddMinutes(28),
+                    EndedAt   = DateTime.Today.AddDays(-3).AddHours(15).AddMinutes(10),
+                    Status = TimesheetStatus.ToSend },
         };
 
         return (accounts, roles, events, assignments, timesheets);

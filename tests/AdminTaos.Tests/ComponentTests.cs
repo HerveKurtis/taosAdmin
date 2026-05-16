@@ -41,4 +41,12 @@ public class ComponentTests : BunitContext
         cut.FindAll("button")[0].Click(); // - (clamp at 0)
         Assert.Equal(0, val);
     }
+
+    [Fact]
+    public void Chrono_formats_elapsed_since_start()
+    {
+        var start = System.DateTime.Now.AddMinutes(-90).AddSeconds(-5);
+        var cut = Render<AdminTaos.Components.Chrono>(p => p.Add(c => c.Since, start));
+        Assert.Matches(@"01:3[01]:\d\d", cut.Find(".chrono").TextContent);
+    }
 }

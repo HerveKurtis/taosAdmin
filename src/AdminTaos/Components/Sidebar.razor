@@ -1,0 +1,35 @@
+@inject AuthState Auth
+
+<aside class="side">
+    <span class="wm">TAOS</span>
+    <nav>
+        @foreach (var i in Items)
+        {
+            <NavLink class="nav" href="@i.Href" Match="@(i.Href.Length<=2?NavLinkMatch.All:NavLinkMatch.Prefix)"
+                     @onclick="OnNavigate">
+                <span class="i">@i.Icon</span><span class="lbl">@i.Label</span>
+            </NavLink>
+        }
+    </nav>
+    <div class="foot">@Auth.CurrentUser?.FullName · @RoleLabel</div>
+</aside>
+
+@code {
+    public record NavItem(string Href, string Icon, string Label);
+    [Parameter] public EventCallback OnNavigate { get; set; }
+
+    string RoleLabel => Auth.CurrentUser?.Type == AccountType.Manager ? "Manager" : "Employé";
+
+    List<NavItem> Items => Auth.CurrentUser?.Type == AccountType.Manager
+        ? new()
+          {
+              new("/m","▦","Tableau de bord"), new("/m/events","◷","Events"),
+              new("/m/team","◴","Équipe"), new("/m/timesheets","≣","Timesheets"),
+              new("/m/roles","✦","Rôles"), new("/m/profile","○","Profil"),
+          }
+        : new()
+          {
+              new("/e","▦","Tableau de bord"), new("/e/events","◷","Events"),
+              new("/e/hours","≣","Mes heures"), new("/e/profile","○","Profil"),
+          };
+}

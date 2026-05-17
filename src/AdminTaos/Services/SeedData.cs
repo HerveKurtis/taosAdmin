@@ -70,7 +70,8 @@ public static class SeedData
             DressCode = "Noir élégant", Instructions = "", OnSiteContact = "",
             IsOpenForSignup = false, Status = EventStatus.InProgress,
             RoleNeeds = new() {
-                new() { JobRoleId = RoleHost, CountNeeded = 1, HourlyRate = 15m },
+                new() { JobRoleId = RoleServer, CountNeeded = 1, HourlyRate = 14m },
+                new() { JobRoleId = RoleHost,   CountNeeded = 1, HourlyRate = 15m },
             }
         };
         var pastEvt = new ServiceEvent {
@@ -127,16 +128,16 @@ public static class SeedData
         var aP3Server = new Assignment { Id = "asg-7", EventId = pastEvt3.Id,
             AccountId = EmpActiveServer, JobRoleId = RoleServer,
             Source = AssignmentSource.AssignedByManager, Status = AssignmentStatus.Confirmed };
+        var aTodayServer = new Assignment { Id = "asg-8", EventId = todayEvt.Id,
+            AccountId = EmpActiveServer, JobRoleId = RoleServer,
+            Source = AssignmentSource.AssignedByManager, Status = AssignmentStatus.Confirmed };
         var assignments = new List<Assignment> { aGalaServer, aCocktailReq, aTodayHost, aPastServer,
-            aP2Host, aP2Server, aP3Server };
+            aP2Host, aP2Server, aP3Server, aTodayServer };
 
         var timesheets = new List<Timesheet>
         {
             // Future gala — not started
             new() { Id = "ts-1", AssignmentId = aGalaServer.Id, Status = TimesheetStatus.NotStarted },
-            // Today — in progress (started 30 min ago)
-            new() { Id = "ts-2", AssignmentId = aTodayHost.Id,
-                    StartedAt = DateTime.Now.AddMinutes(-30), Status = TimesheetStatus.InProgress },
             // Past — sent, awaiting manager validation
             new() { Id = "ts-3", AssignmentId = aPastServer.Id,
                     StartedAt = DateTime.Today.AddDays(-6).AddHours(15),

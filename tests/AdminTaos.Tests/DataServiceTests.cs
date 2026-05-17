@@ -15,8 +15,8 @@ public class DataServiceTests
         Assert.Equal(5, (await db.GetAccountsAsync()).Count);
         Assert.Equal(2, (await db.GetJobRolesAsync()).Count);
         Assert.Equal(6, (await db.GetEventsAsync()).Count);
-        Assert.Equal(7, (await db.GetAssignmentsAsync()).Count);
-        Assert.Equal(6, (await db.GetTimesheetsAsync()).Count);
+        Assert.Equal(8, (await db.GetAssignmentsAsync()).Count);
+        Assert.Equal(5, (await db.GetTimesheetsAsync()).Count);
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 @inject AuthState Auth
+@inject NavigationManager Nav
 
 <aside class="side">
     <span class="wm">TAOS</span>
@@ -7,11 +8,16 @@
         {
             <NavLink class="nav" href="@i.Href" Match="@(i.Href.Length<=2?NavLinkMatch.All:NavLinkMatch.Prefix)"
                      @onclick="OnNavigate">
-                <span class="i">@i.Icon</span><span class="lbl">@i.Label</span>
+                <span class="i">@Ico(i.Icon)</span><span class="lbl">@i.Label</span>
             </NavLink>
         }
     </nav>
-    <div class="foot">@Auth.CurrentUser?.FullName · @RoleLabel</div>
+    <div class="foot">
+        <div class="who">@Auth.CurrentUser?.FullName · @RoleLabel</div>
+        <button class="nav logout" @onclick="DoLogout">
+            <span class="i">@Ico("logout")</span><span class="lbl">Se déconnecter</span>
+        </button>
+    </div>
 </aside>
 
 @code {
@@ -23,13 +29,63 @@
     List<NavItem> Items => Auth.CurrentUser?.Type == AccountType.Manager
         ? new()
           {
-              new("/m","▦","Tableau de bord"), new("/m/events","◷","Events"),
-              new("/m/team","◴","Équipe"), new("/m/timesheets","≣","Timesheets"),
-              new("/m/roles","✦","Rôles"), new("/m/profile","○","Profil"),
+              new("/m","dashboard","Tableau de bord"), new("/m/events","calendar","Events"),
+              new("/m/team","users","Équipe"), new("/m/timesheets","clipboard","Timesheets"),
+              new("/m/roles","tag","Rôles"), new("/m/profile","user","Profil"),
           }
         : new()
           {
-              new("/e","▦","Tableau de bord"), new("/e/events","◷","Events"),
-              new("/e/hours","≣","Mes heures"), new("/e/profile","○","Profil"),
+              new("/e","dashboard","Tableau de bord"), new("/e/events","calendar","Events"),
+              new("/e/hours","clock","Mes heures"), new("/e/profile","user","Profil"),
           };
+
+    async Task DoLogout()
+    {
+        await OnNavigate.InvokeAsync();
+        await Auth.LogoutAsync();
+        Nav.NavigateTo("login", replace: true);
+    }
+
+    RenderFragment Ico(string key) => @<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        @switch (key)
+        {
+            case "dashboard":
+                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                break;
+            case "calendar":
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4M8 2v4M3 10h18"></path>
+                break;
+            case "users":
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                break;
+            case "clipboard":
+                <rect x="8" y="2" width="8" height="4" rx="1"></rect>
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <path d="M9 12h6M9 16h6"></path>
+                break;
+            case "clock":
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 2"></path>
+                break;
+            case "tag":
+                <path d="M20.59 13.41 13.42 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                <circle cx="7" cy="7" r="1.2"></circle>
+                break;
+            case "user":
+                <circle cx="12" cy="8" r="4"></circle>
+                <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"></path>
+                break;
+            case "logout":
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <path d="M16 17l5-5-5-5M21 12H9"></path>
+                break;
+        }
+    </svg>;
 }

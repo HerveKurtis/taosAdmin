@@ -29,11 +29,15 @@ h1{font-family:var(--pf);font-weight:700;font-size:22px;margin-bottom:2px}
 .side .wm{font-family:var(--pf);font-weight:700;letter-spacing:3px;font-size:22px;
   color:var(--sidegold);padding:6px 12px 20px;white-space:nowrap;overflow:hidden}
 .side nav{display:flex;flex-direction:column;gap:3px;flex:1}
-.side a.nav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;
-  color:var(--sidetxt);font-weight:500;opacity:.78;white-space:nowrap;overflow:hidden}
-.side a.nav .i{width:18px;text-align:center;flex:0 0 18px;font-size:15px}
-.side a.nav:hover{opacity:1;background:var(--side2)}
+.side a.nav,.side button.nav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;
+  color:var(--sidetxt);font-weight:500;opacity:.78;white-space:nowrap;overflow:hidden;
+  width:100%;background:none;font-family:inherit;text-align:left;border:0;cursor:pointer}
+.side a.nav .i,.side button.nav .i{width:18px;text-align:center;flex:0 0 18px;font-size:15px}
+.side a.nav:hover,.side button.nav:hover{opacity:1;background:var(--side2)}
 .side a.nav.active{opacity:1;background:rgba(231,199,107,.15);color:var(--sidegold);font-weight:600}
+.side .foot .who{margin-bottom:8px}
+.side button.nav.logout{color:#E58A8A;opacity:.85}
+.side button.nav.logout:hover{opacity:1;background:rgba(229,138,138,.12)}
 .side .foot{margin-top:auto;font-size:12px;color:#7c8088;padding:12px;white-space:nowrap;overflow:hidden}
 .main{flex:1;margin-left:var(--side-w);display:flex;flex-direction:column;min-width:0}
 .topbar{height:60px;flex:0 0 60px;background:var(--surface);border-bottom:1px solid var(--line);
@@ -151,8 +155,10 @@ h1{font-family:var(--pf);font-weight:700;font-size:22px;margin-bottom:2px}
   .side .wm::after{content:'T';font-size:22px}
   .side a.nav{justify-content:center;padding:11px 0}
   .side a.nav span.lbl{display:none}
+  .side button.nav span.lbl{display:none}
+  .side button.nav{justify-content:center;padding:11px 0}
   .side a.nav .i{flex:0 0 auto}
-  .side .foot{display:none}
+  .side .foot .who{display:none}
 }
 
 /* ---------- Mobile: drawer ---------- */

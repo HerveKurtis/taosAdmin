@@ -19,10 +19,12 @@ Objectif : passer à une vraie persistence cross-device et à une vraie authenti
 
 **Inclus en v1 :**
 - **Firebase Authentication** (Email + mot de passe).
-- **Cloud Firestore** comme implémentation de `IDataService`.
+- **Cloud Firestore** comme implémentation de `IDataService` (toutes les collections : `accounts`, `jobRoles`, `events`, `assignments`, `timesheets`). Plus aucune donnée en mémoire en prod.
+- **Firebase Storage** pour les photos de profil utilisateur.
 - **Règles de sécurité Firestore strictes** basées sur rôle + statut.
+- **Règles de sécurité Storage** : un utilisateur authentifié écrit uniquement son propre avatar ; lecture publique-authentifiée.
 
-**Exclus en v1 (peuvent venir plus tard) :** listeners Firestore temps-réel, persistence offline Firestore, FCM push notifs, Firebase Hosting, Firebase Storage, Cloud Functions, Firebase App Check, custom claims, MFA.
+**Exclus en v1 (peuvent venir plus tard) :** listeners Firestore temps-réel, persistence offline Firestore, FCM push notifs, Firebase Hosting, Cloud Functions, Firebase App Check, custom claims, MFA.
 
 **Garanties non négociables :**
 - Aucun `@code` de page n'est modifié.
@@ -63,7 +65,14 @@ L'app est livrée **vide** : aucun document seedé en production.
 - `src/AdminTaos/Program.cs` — registre : `AddSingleton<IAuthClient, FirebaseAuthClient>()`, `AddSingleton<IDataService, FirestoreDataService>()`, `AddScoped<AuthState>()`, `AddScoped<NavigationGuard>()`. `Blazored.LocalStorage` n'est plus nécessaire (session gérée par Firebase Auth) — on l'enlève proprement.
 - `src/AdminTaos/wwwroot/index.html` — ajout d'un `<script type="module" src="firebase.js"></script>` avant le chargement Blazor.
 
-**Fichiers C# inchangés :** tous les modèles (`Account`, `JobRole`, `RoleNeed`, `ServiceEvent`, `Assignment`, `Timesheet`, enums), `IDataService`, `NavigationGuard`, `ViewHelpers`, tous les composants (`Sidebar`, `DashTopbar`, `ResponsiveTable`, `StatCard`, `Stepper`, `ToggleSwitch`, `Chrono`, `EmptyState`, `SectionLabel`), tous les layouts (`DashboardLayout`, `AuthShell`), `App.razor`, et **les `@code` de toutes les 23 pages**.
+**Fichiers C# inchangés :** `JobRole`, `RoleNeed`, `ServiceEvent`, `Assignment`, `Timesheet`, tous les enums, `IDataService`, `NavigationGuard`, `ViewHelpers`, tous les composants (`ResponsiveTable`, `StatCard`, `Stepper`, `ToggleSwitch`, `Chrono`, `EmptyState`, `SectionLabel`), tous les layouts (`DashboardLayout`, `AuthShell`), `App.razor`, et **les `@code` de toutes les 23 pages d'événements/timesheets/équipe**.
+
+**Petites évolutions modèle / composants pour la photo de profil :**
+- `Account` gagne un champ `string? PhotoUrl` (optionnel, null par défaut).
+- `Sidebar.razor` foot : affiche l'avatar (img si PhotoUrl, sinon initiales) à côté du nom.
+- `DashTopbar.razor` : affiche l'img si `accounts/{uid}.photoUrl` est non null, sinon les initiales (comportement actuel).
+- `MProfile.razor` + `EProfile.razor` : une section avatar avec bouton « Changer ma photo » qui ouvre le sélecteur de fichier → upload via `IStorageClient` → mise à jour de `accounts/{uid}.photoUrl`.
+- Nouveau service `IStorageClient` + impl. `FirebaseStorageClient` (upload via Firebase Storage JS SDK + IJSRuntime).
 
 **Conservé pour tests :** `InMemoryDataService.cs` et `SeedData.cs` restent dans le repo. Ils ne sont plus enregistrés en DI prod mais le projet de test les instancie directement (déjà le cas aujourd'hui).
 
@@ -72,7 +81,7 @@ L'app est livrée **vide** : aucun document seedé en production.
 Collections au top level (pas de sous-collections en v1) :
 
 - **`accounts/{uid}`** — clé doc = Firebase Auth uid.
-  - `fullName: string`, `email: string`, `type: "Manager"|"Employee"`, `status: "Pending"|"Active"|"Rejected"`, `jobRoleIds: string[]`, `createdAt: Timestamp`.
+  - `fullName: string`, `email: string`, `type: "Manager"|"Employee"`, `status: "Pending"|"Active"|"Rejected"`, `jobRoleIds: string[]`, `photoUrl: string?` (URL signée Firebase Storage, ou `null` → fallback initiales), `createdAt: Timestamp`.
 - **`jobRoles/{id}`** — id généré client (ex. Guid).
   - `name: string`, `color: string` (hex).
 - **`events/{id}`** — id généré client.
@@ -87,6 +96,30 @@ Collections au top level (pas de sous-collections en v1) :
 - `DateOnly`/`TimeOnly` en `string` ISO (préserves la sémantique « pas de timezone »).
 - `DateTime` en `Timestamp` Firestore.
 - Pas d'index composé requis en v1 (les requêtes restent simples : par `eventId`, par `accountId`, par `status`).
+
+## 5b. Photos de profil
+
+**Storage layout :** `avatars/{uid}.jpg` (un seul fichier par utilisateur, écrasé à chaque upload — pas d'historique en v1).
+
+**Flux d'upload (Profil) :**
+1. L'utilisateur clique « Changer ma photo » → input file (JPEG/PNG).
+2. Côté client : redimensionnement Canvas à max 512×512, ré-encodage JPEG qualité ~0.85 (la photo finale fait typiquement 50–300 Ko).
+3. Upload sur `avatars/{uid}.jpg` via Firebase Storage JS SDK.
+4. Récupère l'URL de téléchargement (`getDownloadURL`).
+5. Met à jour `accounts/{uid}.photoUrl` avec cette URL.
+6. `AuthState.Refresh()` (ou re-lecture du doc) → la sidebar/topbar/profil se mettent à jour.
+
+**Affichage :**
+- **`Sidebar.razor` foot** : un `<img class="ava">` (rond, ~28 px, src=PhotoUrl) si PhotoUrl, sinon `<span class="ava-i">{Initiales}</span>`. À côté : nom · rôle.
+- **`DashTopbar.razor` avatar** : `<img>` si PhotoUrl, sinon le `<span class="av">@Initials</span>` existant.
+- **Page Profil** : avatar grand format (96 px), bouton « Changer ma photo », message d'erreur si upload échoue.
+
+**Initiales (fallback)** : algorithme `string.Concat((FullName ?? "").Split(' ', RemoveEmptyEntries).Take(2).Select(p => char.ToUpper(p[0])))` — déjà implémenté dans `DashTopbar`. Pour « Hervé Tendayi » → « HT » ; pour « Marc » → « M » ; vide → « · ». Réutilisé tel quel.
+
+**Limites :**
+- Taille max upload : 2 Mo brut (rejeté côté client si plus gros) ; après compression la cible est <500 Ko.
+- Pas de crop interactif en v1 (le carré central de l'image source est utilisé). Bouton crop éventuel en v2.
+- Pas de suppression explicite en v1 : remplacer par une nouvelle photo écrase l'ancienne ; revenir aux initiales = supprimer manuellement le fichier en console (ou via une suppression côté app, à ajouter si demandé).
 
 ## 6. Règles de sécurité (baseline strict)
 
@@ -160,6 +193,25 @@ service cloud.firestore {
 
 Les règles seront commitées dans `firestore.rules` à la racine du repo et déployées via `firebase deploy --only firestore:rules`.
 
+**Règles Storage** (`storage.rules`) :
+
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /avatars/{uid}.jpg {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
+```
+
+Déployées via `firebase deploy --only storage`.
+
 ## 7. Tests
 
 **Inchangés (restent verts) :**
@@ -185,7 +237,8 @@ Les règles seront commitées dans `firestore.rules` à la racine du repo et dé
 1. Créer un projet Firebase (plan **Spark** gratuit).
 2. Activer **Authentication → Email/Password**.
 3. Créer une base **Cloud Firestore** en mode production.
-4. Récupérer la config web depuis « Paramètres du projet → Vos applications → SDK setup » et la coller dans `src/AdminTaos/wwwroot/firebase-config.js` :
+4. Activer **Storage** (mode production).
+5. Récupérer la config web depuis « Paramètres du projet → Vos applications → SDK setup » et la coller dans `src/AdminTaos/wwwroot/firebase-config.js` :
    ```js
    export const firebaseConfig = {
      apiKey: "AIzaSy...",
@@ -197,7 +250,7 @@ Les règles seront commitées dans `firestore.rules` à la racine du repo et dé
    };
    ```
 5. Installer le CLI : `npm install -g firebase-tools`. `firebase login`. `firebase init firestore` (pour `firestore.rules` + `firestore.indexes.json`).
-6. Déployer les règles : `firebase deploy --only firestore:rules`.
+6. Déployer les règles : `firebase deploy --only firestore:rules,storage`.
 
 **Dev local :** le même projet Firebase qu'en démo. Pas d'émulateur en v1 (ajoutable plus tard). Les tests automatisés restent isolés grâce à `InMemoryDataService`.
 
@@ -216,6 +269,10 @@ Les règles seront commitées dans `firestore.rules` à la racine du repo et dé
   4. Login employé → `/e` montre l'event, « Commencer mon shift » fonctionne → /active → « Terminer mon shift » → /recap → « Envoyer ma timesheet pour validation ».
   5. Manager voit la timesheet dans `/m/timesheets`, peut Valider ou Refuser (motif).
   6. Employé voit le résultat dans `/e/hours` (Refusée → motif visible + Renvoyer).
+- **Photo de profil :**
+  7. Sur page Profil, upload d'une photo de profil → l'avatar sidebar + topbar passent de « initiales » à l'image. Reload → l'image persiste.
+  8. Un utilisateur sans photo voit ses initiales partout (sidebar foot, topbar avatar, page Profil). Algorithme d'initiales vérifié pour les cas « Prénom Nom » → 2 lettres, « Prénom » → 1 lettre, vide → « · ».
+  9. Tentative d'upload d'un fichier non-image ou > 2 Mo : rejetée côté client avant l'appel Storage (message d'erreur dans la page Profil).
 - **Tests négatifs de règles** (manuel, via console rules-playground ou un compte employé) : un employé ne peut PAS lire la timesheet d'un autre employé ; un Pending ne peut PAS lister `accounts`/`events` ; un employé Active ne peut PAS écrire dans `events`.
 - Reskin et UI inchangés visuellement à toutes les tailles.
 - Le markup `<button class="card quick">` est absent de `Login.razor` (la connexion rapide est retirée).
@@ -223,10 +280,11 @@ Les règles seront commitées dans `firestore.rules` à la racine du repo et dé
 ## 10. Notes pour la planification
 
 Découpage suggéré pour le plan d'implémentation :
-1. **Setup Firebase + config** : créer projet, ajouter `firebase-config.js`, `firebase.js` (init + helpers Auth), `firestore.rules` minimal (allow auth-only pour faire passer le setup), wiring `index.html`. Pas encore de C# — juste l'infra JS et la config. Commit.
+1. **Setup Firebase + config** : créer projet, activer Auth/Firestore/Storage, ajouter `firebase-config.js`, `firebase.js` (init + helpers Auth/Firestore/Storage), `firestore.rules` + `storage.rules` minimaux (allow auth-only pour faire passer le setup), wiring `index.html`. Pas encore de C# — juste l'infra JS et la config. Commit.
 2. **`IAuthClient` + `FirebaseAuthClient` + refactor `AuthState`** : nouvelle interface, impl. JS interop, `AuthState` accepte `(email, password)`, événement `OnAuthChanged` recharge `accounts/{uid}`. Refactor `AuthStateTests` avec `FakeAuthClient`. Build + 28 tests verts.
 3. **`Login.razor` + `Register.razor`** : suppression quick-login (et du test bUnit associé), wiring login Firebase, wiring register Firebase + création du doc `accounts/{uid}`. Build + 28 tests verts (le bUnit supprimé n'apparaît plus).
 4. **`FirestoreDataService`** : implémente les ~23 méthodes de `IDataService` une par une (Accounts, JobRoles, Events, Assignments, Timesheets) via JS interop avec mapping Timestamp↔DateTime, string↔DateOnly/TimeOnly, enums string↔C#. Build + 28 tests verts (toujours via `InMemoryDataService` côté tests).
 5. **DI swap dans `Program.cs`** : enregistrer `FirestoreDataService` à la place de `InMemoryDataService` en prod. Retirer la dépendance `Blazored.LocalStorage` du `csproj` (Firebase Auth persiste la session via IndexedDB de son côté, plus rien ne l'utilise). Build + tests verts.
-6. **`firestore.rules` complètes** : règles strictes finales (§6), commit, `firebase deploy --only firestore:rules`.
-7. **Vérification bout-en-bout** (DoD §9) : scénario complet sur Firebase réel, validation manuelle des règles, fix éventuels. Commit final.
+6. **Photo de profil — `Account.PhotoUrl` + `IStorageClient` + `FirebaseStorageClient` + UI** : ajout du champ modèle, du service d'upload, redimensionnement Canvas, intégration sidebar foot + topbar avatar + page Profil avec bouton « Changer ma photo ». Build + 28 tests verts.
+7. **Règles complètes** : `firestore.rules` strictes finales (§6) + `storage.rules` (§6 fin), commit, `firebase deploy --only firestore:rules,storage`.
+8. **Vérification bout-en-bout** (DoD §9) : scénario complet sur Firebase réel incl. upload photo + initiales fallback, validation manuelle des règles, fix éventuels. Commit final.

@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function isAuth()     { return request.auth != null; }
+    function userDoc()    { return get(/databases/$(db)/documents/accounts/$(request.auth.uid)).data; }
+    function isActive()   { return isAuth() && userDoc().status == "Active"; }
+    function isManager()  { return isActive() && userDoc().type == "Manager"; }
+    function isEmployee() { return isActive() && userDoc().type == "Employee"; }
+    function isSelf(uid)  { return isAuth() && request.auth.uid == uid; }
+
+    // ---------- Accounts ----------
+    match /accounts/{uid} {
+      allow read: if isSelf(uid) || isManager();
+      allow create: if isSelf(uid)
+                    && request.resource.data.type == "Employee"
+                    && request.resource.data.status == "Pending";
+      // Self may update only profile fields; never elevate own type/status.
+      allow update: if isManager()
+                    || (isSelf(uid)
+                        && request.resource.data.type   == resource.data.type
+                        && request.resource.data.status == resource.data.status);
+      allow delete: if isManager();
+    }
+
+    // ---------- Job roles ----------
+    match /jobRoles/{id} {
+      allow read:  if isActive();
+      allow write: if isManager();
+    }
+
+    // ---------- Events ----------
+    // v1 simplification: any Active user reads all events (UI filters by assignment/open).
+    // Write is manager-only. Tighter rule deferred to v2.
+    match /events/{eventId} {
+      allow read:  if isActive();
+      allow write: if isManager();
+    }
+
+    // ---------- Assignments ----------
+    match /assignments/{id} {
+      allow read:   if isManager()
+                    || (isEmployee() && resource.data.accountId == request.auth.uid);
+      allow create: if isManager()
+                    || (isEmployee()
+                        && request.resource.data.accountId == request.auth.uid
+                        && request.resource.data.source    == "SelfRequest"
+                        && request.resource.data.status    == "PendingApproval");
+      allow update: if isManager();
+      allow delete: if isManager();
+    }
+
+    // ---------- Timesheets ----------
+    // Employees own a timesheet if its assignment belongs to them.
+    function isMyAssignment(assignmentId) {
+      let a = get(/databases/$(db)/documents/assignments/$(assignmentId)).data;
+      return a.accountId == request.auth.uid;
+    }
+
+    match /timesheets/{id} {
+      allow read:   if isManager()
+                    || (isEmployee() && isMyAssignment(resource.data.assignmentId));
+      allow create: if isManager()
+                    || (isEmployee() && isMyAssignment(request.resource.data.assignmentId));
+      allow update: if isManager()
+                    || (isEmployee() && isMyAssignment(resource.data.assignmentId));
+      allow delete: if isManager();
+    }
+  }
+}

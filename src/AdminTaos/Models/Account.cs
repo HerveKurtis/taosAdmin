@@ -8,5 +8,6 @@ public class Account
     public AccountType Type { get; set; } = AccountType.Employee;
     public AccountStatus Status { get; set; } = AccountStatus.Pending;
     public List<string> JobRoleIds { get; set; } = new();
+    public string? PhotoUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 }

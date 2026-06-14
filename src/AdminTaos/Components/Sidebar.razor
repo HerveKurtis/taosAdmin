@@ -13,7 +13,17 @@
         }
     </nav>
     <div class="foot">
-        <div class="who">@Auth.CurrentUser?.FullName · @RoleLabel</div>
+        <div class="who">
+            @if (!string.IsNullOrWhiteSpace(Auth.CurrentUser?.PhotoUrl))
+            {
+                <img class="ava" src="@Auth.CurrentUser!.PhotoUrl" alt="" />
+            }
+            else
+            {
+                <span class="ava-i">@Initials</span>
+            }
+            <span class="who-txt">@Auth.CurrentUser?.FullName · @RoleLabel</span>
+        </div>
         <button class="nav logout" @onclick="DoLogout">
             <span class="i">@Ico("logout")</span><span class="lbl">Se déconnecter</span>
         </button>
@@ -25,6 +35,10 @@
     [Parameter] public EventCallback OnNavigate { get; set; }
 
     string RoleLabel => Auth.CurrentUser?.Type == AccountType.Manager ? "Manager" : "Employé";
+
+    string Initials => string.Concat((Auth.CurrentUser?.FullName ?? "")
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Take(2).Select(p => char.ToUpper(p[0]))) is { Length: > 0 } s ? s : "·";
 
     List<NavItem> Items => Auth.CurrentUser?.Type == AccountType.Manager
         ? new()

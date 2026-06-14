@@ -1,12 +1,23 @@
 <header class="topbar">
     <button class="burger" @onclick="OnBurger" aria-label="Menu">☰</button>
     <span class="ttl">@Title</span>
-    <span class="usr">@User<span class="av">@Initials</span></span>
+    <span class="usr">
+        @User
+        @if (!string.IsNullOrWhiteSpace(PhotoUrl))
+        {
+            <img class="ava" src="@PhotoUrl" alt="" />
+        }
+        else
+        {
+            <span class="av">@Initials</span>
+        }
+    </span>
 </header>
 
 @code {
     [Parameter] public string Title { get; set; } = "";
     [Parameter] public string User { get; set; } = "";
+    [Parameter] public string? PhotoUrl { get; set; }
     [Parameter] public EventCallback OnBurger { get; set; }
     string Initials => string.Concat((User ?? "")
         .Split(' ', StringSplitOptions.RemoveEmptyEntries)

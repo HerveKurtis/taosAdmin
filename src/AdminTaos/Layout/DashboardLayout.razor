@@ -6,7 +6,8 @@
     <div class="scrim" @onclick="Close"></div>
     <Sidebar OnNavigate="Close" />
     <div class="main">
-        <DashTopbar Title="@PageTitle" User="@(Auth.CurrentUser?.FullName ?? "")" OnBurger="Toggle" />
+        <DashTopbar Title="@PageTitle" User="@(Auth.CurrentUser?.FullName ?? "")"
+                    PhotoUrl="@Auth.CurrentUser?.PhotoUrl" OnBurger="Toggle" />
         <div class="content">@Body</div>
     </div>
 </div>

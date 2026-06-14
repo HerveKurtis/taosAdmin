@@ -1,16 +1,64 @@
 @page "/m/profile"
 @layout DashboardLayout
 @inject AuthState Auth
+@inject IDataService Data
+@inject IStorageClient Storage
 @inject NavigationManager Nav
 
 <h1>Profil</h1>
-<div class="panel">
-    <div class="field"><span>Nom</span><b>@Auth.CurrentUser?.FullName</b></div>
-    <div class="field"><span>Email</span><b>@Auth.CurrentUser?.Email</b></div>
-    <div class="field"><span>Rôle</span><b>Manager</b></div>
+
+<div class="panel" style="display:flex;align-items:center;gap:18px">
+    @if (!string.IsNullOrWhiteSpace(Auth.CurrentUser?.PhotoUrl))
+    {
+        <img src="@Auth.CurrentUser!.PhotoUrl" alt="Photo de profil"
+             style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" />
+    }
+    else
+    {
+        <div style="width:96px;height:96px;border-radius:50%;background:var(--goldbg);color:var(--gold);
+             display:flex;align-items:center;justify-content:center;font-family:var(--pf);font-weight:700;font-size:32px">
+            @Initials
+        </div>
+    }
+    <div style="flex:1">
+        <div class="t">@Auth.CurrentUser?.FullName</div>
+        <div class="m">@Auth.CurrentUser?.Email · Manager</div>
+        <button class="btn ghost" style="margin-top:10px" disabled="@_uploading" @onclick="ChangePhoto">
+            @(_uploading ? "Téléversement…" : "Changer ma photo")
+        </button>
+        @if (_error is not null) { <p class="pill bad" style="display:block;margin-top:8px">@_error</p> }
+    </div>
 </div>
+
 <button class="btn ghost" style="margin-top:16px" @onclick="Logout">Se déconnecter</button>
 
 @code {
-    async Task Logout() { await Auth.LogoutAsync(); Nav.NavigateTo("login", replace:true); }
+    bool _uploading;
+    string? _error;
+
+    string Initials => string.Concat((Auth.CurrentUser?.FullName ?? "")
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Take(2).Select(p => char.ToUpper(p[0]))) is { Length: > 0 } s ? s : "·";
+
+    async Task ChangePhoto()
+    {
+        if (Auth.CurrentUser is null) return;
+        _error = null; _uploading = true; StateHasChanged();
+        try
+        {
+            var url = await Storage.PickAndUploadAvatarAsync(Auth.CurrentUser.Id);
+            if (url is null) { return; } // user cancelled
+            Auth.CurrentUser.PhotoUrl = url;
+            await Data.UpdateAccountAsync(Auth.CurrentUser);
+            Auth.Refresh();
+        }
+        catch (Exception ex) { _error = ex.Message ?? "Échec du téléversement"; }
+        finally { _uploading = false; }
+    }
+
+    async Task Logout()
+    {
+        await Auth.LogoutAsync();
+        Nav.NavigateTo("login", replace: true);
+    }
 }

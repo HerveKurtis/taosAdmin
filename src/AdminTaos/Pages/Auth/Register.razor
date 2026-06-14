@@ -1,6 +1,4 @@
 @page "/register"
-@inject IDataService Data
-@inject NavigationManager Nav
 
 <button class="backlink" @onclick='() => Nav.NavigateTo("login")'>‹ Connexion</button>
 <h1 style="font-size:20px">Créer un compte</h1>
@@ -17,25 +15,44 @@
         <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné ✓" : "Toucher pour choisir")</div>
     </button>
 }
-@if (_err) { <p class="pill bad" style="display:block;margin-top:10px">Remplis nom, email et au moins un rôle.</p> }
+@if (_err) { <p class="pill bad" style="display:block;margin-top:10px">@_errMessage</p> }
 <button class="btn primary block" style="margin-top:14px" @onclick="Submit">S'inscrire</button>
 
 @code {
+    [Inject] IDataService Data { get; set; } = default!;
+    [Inject] AuthState Auth { get; set; } = default!;
+    [Inject] NavigationManager Nav { get; set; } = default!;
+
     List<JobRole> _roles = new();
     readonly HashSet<string> _selected = new();
     string _name = "", _email = "", _pwd = "";
     bool _err;
+    string _errMessage = "Remplis nom, email, mot de passe et au moins un rôle.";
 
     protected override async Task OnInitializedAsync() => _roles = await Data.GetJobRolesAsync();
+
     void Toggle(string id) { if (!_selected.Add(id)) _selected.Remove(id); }
 
     async Task Submit()
     {
-        if (string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_email) || _selected.Count == 0)
-        { _err = true; return; }
-        await Data.CreateAccountAsync(new Account {
-            FullName = _name, Email = _email, Type = AccountType.Employee,
-            Status = AccountStatus.Pending, JobRoleIds = _selected.ToList() });
-        Nav.NavigateTo("login");
+        _err = false;
+        if (string.IsNullOrWhiteSpace(_name)
+            || string.IsNullOrWhiteSpace(_email)
+            || string.IsNullOrWhiteSpace(_pwd)
+            || _selected.Count == 0)
+        {
+            _err = true;
+            _errMessage = "Remplis nom, email, mot de passe et au moins un rôle.";
+            return;
+        }
+
+        var ok = await Auth.RegisterAsync(_name.Trim(), _email.Trim(), _pwd, _selected.ToList());
+        if (!ok)
+        {
+            _err = true;
+            _errMessage = "Cet email est déjà utilisé ou l'inscription a échoué.";
+            return;
+        }
+        Nav.NavigateTo("pending", replace: true);
     }
 }

@@ -1,6 +1,5 @@
 using AdminTaos.Pages.Auth;
 using AdminTaos.Services;
-using Blazored.LocalStorage;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -12,7 +11,7 @@ public class ComponentTests : BunitContext
     void Wire()
     {
         Services.AddSingleton<IDataService, InMemoryDataService>();
-        Services.AddSingleton<ILocalStorageService>(new FakeLocalStorage());
+        Services.AddSingleton<IAuthClient, FakeAuthClient>();
         Services.AddScoped<AuthState>();
         Services.AddScoped<NavigationGuard>();
     }

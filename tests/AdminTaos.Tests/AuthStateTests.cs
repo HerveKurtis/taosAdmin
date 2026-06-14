@@ -1,67 +1,58 @@
 using AdminTaos.Models;
 using AdminTaos.Services;
-using Blazored.LocalStorage;
 using Xunit;
 
 namespace AdminTaos.Tests;
 
-class FakeLocalStorage : ILocalStorageService
-{
-    readonly Dictionary<string,string> _d = new();
-    public ValueTask<T?> GetItemAsync<T>(string k, CancellationToken c = default)
-        => new(_d.TryGetValue(k, out var v) && v is T tv ? tv : default);
-    public ValueTask SetItemAsync<T>(string k, T v, CancellationToken c = default)
-    { _d[k] = v?.ToString() ?? ""; return ValueTask.CompletedTask; }
-    public ValueTask RemoveItemAsync(string k, CancellationToken c = default)
-    { _d.Remove(k); return ValueTask.CompletedTask; }
-    public ValueTask<string?> GetItemAsStringAsync(string k, CancellationToken c=default)=>new(_d.TryGetValue(k, out var v) ? v : null);
-    public ValueTask SetItemAsStringAsync(string k,string v,CancellationToken c=default){_d[k]=v;return ValueTask.CompletedTask;}
-    public ValueTask<bool> ContainKeyAsync(string k,CancellationToken c=default)=>new(_d.ContainsKey(k));
-    public ValueTask ClearAsync(CancellationToken c=default){_d.Clear();return ValueTask.CompletedTask;}
-    public ValueTask<int> LengthAsync(CancellationToken c=default)=>new(_d.Count);
-    public ValueTask<string?> KeyAsync(int i,CancellationToken c=default)=>new(_d.Keys.ElementAt(i));
-    public ValueTask<IEnumerable<string>> KeysAsync(CancellationToken c=default)=>new(_d.Keys.AsEnumerable());
-    public ValueTask RemoveItemsAsync(IEnumerable<string> keys, CancellationToken c=default)
-    { foreach (var k in keys) _d.Remove(k); return ValueTask.CompletedTask; }
-    public event EventHandler<ChangingEventArgs>? Changing;
-    public event EventHandler<ChangedEventArgs>? Changed;
-}
-
 public class AuthStateTests
 {
-    [Fact]
-    public async Task Login_with_known_email_sets_current_user()
+    private static (AuthState auth, FakeAuthClient fakeAuth, InMemoryDataService data) Wire()
     {
-        var auth = new AuthState(new InMemoryDataService(), new FakeLocalStorage());
-        var ok = await auth.LoginAsync("manager@taos.be");
+        var fakeAuth = new FakeAuthClient();
+        var data     = new InMemoryDataService();
+        // Pre-register Firebase-Auth-side users for two seeded accounts; passwords arbitrary.
+        fakeAuth.PreRegister(SeedData.MgrId,         "manager@taos.be", "pwd-mgr");
+        fakeAuth.PreRegister(SeedData.EmpActiveHost, "sarah@taos.be",   "pwd-sarah");
+        var state = new AuthState(fakeAuth, data);
+        return (state, fakeAuth, data);
+    }
+
+    [Fact]
+    public async Task Login_with_correct_credentials_sets_current_user()
+    {
+        var (auth, _, _) = Wire();
+        var ok = await auth.LoginAsync("manager@taos.be", "pwd-mgr");
         Assert.True(ok);
         Assert.Equal(AccountType.Manager, auth.CurrentUser!.Type);
     }
 
     [Fact]
-    public async Task Login_unknown_email_fails()
+    public async Task Login_with_wrong_password_fails_and_user_stays_null()
     {
-        var auth = new AuthState(new InMemoryDataService(), new FakeLocalStorage());
-        Assert.False(await auth.LoginAsync("nobody@taos.be"));
+        var (auth, _, _) = Wire();
+        Assert.False(await auth.LoginAsync("manager@taos.be", "bad-pwd"));
         Assert.Null(auth.CurrentUser);
     }
 
     [Fact]
-    public async Task Initialize_restores_session()
+    public async Task Initialize_restores_current_user_from_existing_session()
     {
-        var ls = new FakeLocalStorage();
-        var a1 = new AuthState(new InMemoryDataService(), ls);
-        await a1.LoginAsync("sarah@taos.be");
-        var a2 = new AuthState(new InMemoryDataService(), ls);
-        await a2.InitializeAsync();
-        Assert.Equal("sarah@taos.be", a2.CurrentUser!.Email);
+        var fakeAuth = new FakeAuthClient();
+        var data     = new InMemoryDataService();
+        fakeAuth.PreRegister(SeedData.EmpActiveHost, "sarah@taos.be", "pwd-sarah");
+        await fakeAuth.LoginAsync("sarah@taos.be", "pwd-sarah");   // session established outside AuthState
+
+        var state = new AuthState(fakeAuth, data);
+        await state.InitializeAsync();
+
+        Assert.Equal("sarah@taos.be", state.CurrentUser!.Email);
     }
 
     [Fact]
-    public async Task Logout_clears_session()
+    public async Task Logout_clears_current_user()
     {
-        var auth = new AuthState(new InMemoryDataService(), new FakeLocalStorage());
-        await auth.LoginAsync("sarah@taos.be");
+        var (auth, _, _) = Wire();
+        await auth.LoginAsync("manager@taos.be", "pwd-mgr");
         await auth.LogoutAsync();
         Assert.Null(auth.CurrentUser);
     }

@@ -46,7 +46,7 @@
 
     async Task Quick(string email)
     {
-        _error = !await Auth.LoginAsync(email);
+        _error = !await Auth.LoginAsync(email, "");
         if (_error) return;
         var u = Auth.CurrentUser!;
         Nav.NavigateTo(u.Status switch

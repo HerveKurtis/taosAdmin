@@ -4,7 +4,7 @@
 @inject NavigationManager Nav
 
 <h1>Créer un compte</h1>
-<p class="sub">Ton compte sera validé par un manager avant l'accès.</p>
+<p class="sub">Ton compte sera validé par un admin avant l'accès.</p>
 
 <div class="stacked row2">
     <div>
@@ -25,17 +25,22 @@
     <input @bind="_pwd" type="password" placeholder="Minimum 6 caractères" autocomplete="new-password" />
 </div>
 
-<div class="lab">Rôle(s) souhaité(s)</div>
-@if (_roles.Count == 0)
+@if (_roles.Count > 0)
 {
-    <p class="pill bad" style="display:block;text-align:center">Aucun rôle disponible. Contacte ton manager.</p>
+    <div class="lab">Rôle(s) souhaité(s) — optionnel</div>
+    <p class="sub" style="margin-top:0;font-size:11.5px">L'admin pourra ajuster ton rôle après validation.</p>
+    @foreach (var r in _roles)
+    {
+        <button class="card @(_selected.Contains(r.Id) ? "glow" : "")" @onclick="() => Toggle(r.Id)">
+            <div class="t">@r.Name</div>
+            <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné ✓" : "Toucher pour choisir")</div>
+        </button>
+    }
 }
-@foreach (var r in _roles)
+else
 {
-    <button class="card @(_selected.Contains(r.Id) ? "glow" : "")" @onclick="() => Toggle(r.Id)">
-        <div class="t">@r.Name</div>
-        <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné ✓" : "Toucher pour choisir")</div>
-    </button>
+    <div class="lab">Rôle</div>
+    <p class="sub" style="margin-top:0;font-size:11.5px">Ton rôle sera défini par l'admin lors de la validation de ton compte.</p>
 }
 
 @if (_err) { <p class="pill bad" style="display:block;text-align:center;margin-top:10px">@_errMessage</p> }
@@ -48,7 +53,7 @@
     readonly HashSet<string> _selected = new();
     string _firstName = "", _lastName = "", _email = "", _pwd = "";
     bool _err;
-    string _errMessage = "Remplis tous les champs et choisis au moins un rôle.";
+    string _errMessage = "Remplis prénom, nom, email et mot de passe.";
 
     protected override async Task OnInitializedAsync() => _roles = await Data.GetJobRolesAsync();
 
@@ -60,11 +65,10 @@
         if (string.IsNullOrWhiteSpace(_firstName)
             || string.IsNullOrWhiteSpace(_lastName)
             || string.IsNullOrWhiteSpace(_email)
-            || string.IsNullOrWhiteSpace(_pwd)
-            || _selected.Count == 0)
+            || string.IsNullOrWhiteSpace(_pwd))
         {
             _err = true;
-            _errMessage = "Remplis prénom, nom, email, mot de passe et choisis au moins un rôle.";
+            _errMessage = "Remplis prénom, nom, email et mot de passe.";
             return;
         }
 

@@ -25,17 +25,6 @@
               placeholder="Détails opérationnels : arriver 15 min avant, dress code, attendus particuliers, points de RDV, contacts utiles…"></textarea>
 </div>
 
-<div class="lab">Effectif par rôle</div>
-@foreach (var r in _roles)
-{
-    var need = _e.RoleNeeds.FirstOrDefault(n => n.JobRoleId == r.Id);
-    <div class="panel">
-        <div class="t">@r.Name</div>
-        <div class="field"><span>Personnes</span>
-            <Stepper Value="need?.CountNeeded ?? 0" ValueChanged="v => SetCount(r.Id, v)" /></div>
-    </div>
-}
-
 @if (_err) { <p class="pill bad" style="display:block;margin:12px 0">Le nom est obligatoire.</p> }
 <button class="btn primary block" @onclick="Save">@(_isNew ? "Créer l'event" : "Enregistrer")</button>
 

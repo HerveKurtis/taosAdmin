@@ -25,15 +25,18 @@ else
         </div>
     }
 
-    <div class="lab">Effectif par rôle</div>
-    <div class="panel">
-        @foreach (var rn in _e.RoleNeeds)
-        {
-            var c = _confirmed.Count(a => a.JobRoleId == rn.JobRoleId);
-            <div class="field"><span>@RoleName(rn.JobRoleId)</span>
-                <b>@c / @rn.CountNeeded assigné(s)</b></div>
-        }
-    </div>
+    @if (_e.RoleNeeds.Count > 0)
+    {
+        <div class="lab">Effectif par rôle</div>
+        <div class="panel">
+            @foreach (var rn in _e.RoleNeeds)
+            {
+                var c = _confirmed.Count(a => a.JobRoleId == rn.JobRoleId);
+                <div class="field"><span>@RoleName(rn.JobRoleId)</span>
+                    <b>@c / @rn.CountNeeded assigné(s)</b></div>
+            }
+        </div>
+    }
 
     <div class="lab">Personnel assigné</div>
     @if (_confirmed.Count == 0)

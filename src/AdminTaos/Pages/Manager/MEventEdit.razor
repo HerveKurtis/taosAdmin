@@ -14,14 +14,18 @@
     <div class="field"><span>Date</span><input type="date" @bind="_date" /></div>
     <div class="field"><span>RDV</span><input type="time" @bind="_meet" /></div>
     <div class="field"><span>Fin prévue</span><input type="time" @bind="_end" /></div>
-    <div class="field"><span>Tenue</span><input @bind="_e.DressCode" /></div>
-    <div class="field"><span>Consignes</span><input @bind="_e.Instructions" /></div>
     <div class="field"><span>Contact sur place</span><input @bind="_e.OnSiteContact" /></div>
     <div class="field"><span>Ouvert à l'inscription</span>
         <ToggleSwitch Value="_e.IsOpenForSignup" ValueChanged="v => _e.IsOpenForSignup = v" /></div>
 </div>
 
-<div class="lab">Effectif & rémunération par rôle</div>
+<div class="lab">Consignes</div>
+<div class="panel">
+    <textarea class="textarea" rows="6" @bind="_e.Instructions"
+              placeholder="Détails opérationnels : arriver 15 min avant, dress code, attendus particuliers, points de RDV, contacts utiles…"></textarea>
+</div>
+
+<div class="lab">Effectif par rôle</div>
 @foreach (var r in _roles)
 {
     var need = _e.RoleNeeds.FirstOrDefault(n => n.JobRoleId == r.Id);
@@ -29,9 +33,6 @@
         <div class="t">@r.Name</div>
         <div class="field"><span>Personnes</span>
             <Stepper Value="need?.CountNeeded ?? 0" ValueChanged="v => SetCount(r.Id, v)" /></div>
-        <div class="field"><span>Taux €/h</span>
-            <input type="number" style="max-width:90px" value="@((need?.HourlyRate ?? 0m))"
-                   @onchange="e => SetRate(r.Id, e.Value)" /></div>
     </div>
 }
 

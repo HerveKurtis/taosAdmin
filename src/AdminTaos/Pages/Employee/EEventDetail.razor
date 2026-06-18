@@ -15,16 +15,16 @@ else
     <h1>@_e.Name</h1>
     <div class="panel">
         <div class="m">@_e.Venue — @_e.Address<br/>@_e.Date.Fmt() · @_e.MeetingTime.Fmt() → @_e.ExpectedEndTime.Fmt()
-        @if(!string.IsNullOrWhiteSpace(_e.DressCode)){<text><br/>Tenue : @_e.DressCode</text>}
-        @if(!string.IsNullOrWhiteSpace(_e.Instructions)){<text><br/>@_e.Instructions</text>}
         @if(!string.IsNullOrWhiteSpace(_e.OnSiteContact)){<text><br/>Contact : @_e.OnSiteContact</text>}</div>
     </div>
 
-    <div class="lab">Rémunération</div>
-    <div class="panel">
-    @foreach (var rn in _e.RoleNeeds.Where(r => _myRoleIds.Contains(r.JobRoleId)))
-    { <div class="field"><span>@RoleName(rn.JobRoleId)</span><b>@rn.HourlyRate €/h</b></div> }
-    </div>
+    @if (!string.IsNullOrWhiteSpace(_e.Instructions))
+    {
+        <div class="lab">Consignes</div>
+        <div class="panel consignes">
+            <p>@_e.Instructions</p>
+        </div>
+    }
 
     <div style="margin-top:18px">
     @if (_asg is null && _e.IsOpenForSignup)

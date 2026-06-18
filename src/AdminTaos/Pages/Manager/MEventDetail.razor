@@ -14,9 +14,16 @@ else
     <h1>@_e.Name</h1>
     <div class="panel">
         <div class="m">@_e.Venue — @_e.Address<br/>@_e.Date.Fmt() · @_e.MeetingTime.Fmt() → @_e.ExpectedEndTime.Fmt()
-        @if(!string.IsNullOrWhiteSpace(_e.DressCode)){<text><br/>Tenue : @_e.DressCode</text>}
         @if(!string.IsNullOrWhiteSpace(_e.OnSiteContact)){<text><br/>Contact : @_e.OnSiteContact</text>}</div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(_e.Instructions))
+    {
+        <div class="lab">Consignes</div>
+        <div class="panel consignes">
+            <p>@_e.Instructions</p>
+        </div>
+    }
 
     <div class="lab">Effectif par rôle</div>
     <div class="panel">
@@ -24,7 +31,7 @@ else
         {
             var c = _confirmed.Count(a => a.JobRoleId == rn.JobRoleId);
             <div class="field"><span>@RoleName(rn.JobRoleId)</span>
-                <b>@c / @rn.CountNeeded assigné(s) · @rn.HourlyRate €/h</b></div>
+                <b>@c / @rn.CountNeeded assigné(s)</b></div>
         }
     </div>
 

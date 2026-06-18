@@ -1,4 +1,32 @@
 @font-face{font-family:'Playfair';src:url('fonts/playfair-700.woff2') format('woff2');font-weight:700;font-display:swap}
+
+/* ---------- Blazor error UI (overrides default template styling) ---------- */
+#blazor-error-ui{
+  position:fixed;left:0;right:0;bottom:0;z-index:9000;
+  display:none;align-items:center;gap:14px;
+  background:linear-gradient(180deg,#1A1A1A,#141414);
+  border-top:1px solid #C0392B;color:#EDEDED;
+  padding:14px 24px;font-size:13.5px;font-family:var(--sf);
+  box-shadow:0 -10px 30px rgba(0,0,0,.45)
+}
+#blazor-error-ui.show,#blazor-error-ui[style*="display: block"],
+#blazor-error-ui[style*="display:block"]{display:flex}
+#blazor-error-ui .msg{flex:1;min-width:0}
+#blazor-error-ui .reload{
+  display:inline-block;padding:8px 16px;border-radius:8px;
+  border:1px solid #3A2F16;color:#E7C76B;font-weight:600;text-decoration:none;
+  transition:border-color .15s,background .15s
+}
+#blazor-error-ui .reload:hover{border-color:#E7C76B;background:rgba(231,199,107,.08)}
+#blazor-error-ui .dismiss{
+  cursor:pointer;color:#9A9A9A;font-size:22px;line-height:1;padding:4px 10px;
+  text-decoration:none;user-select:none
+}
+#blazor-error-ui .dismiss:hover{color:#EDEDED}
+@media (max-width:600px){
+  #blazor-error-ui{flex-wrap:wrap;padding:12px 16px}
+  #blazor-error-ui .reload{order:3;width:100%;text-align:center}
+}
 @font-face{font-family:'Inter';src:url('fonts/inter-var.woff2') format('woff2');font-weight:400 700;font-display:swap}
 
 :root{

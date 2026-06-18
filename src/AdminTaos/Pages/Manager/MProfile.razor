@@ -22,7 +22,7 @@
     }
     <div style="flex:1">
         <div class="t">@Auth.CurrentUser?.FullName</div>
-        <div class="m">@Auth.CurrentUser?.Email · Manager</div>
+        <div class="m">@Auth.CurrentUser?.Email · Admin</div>
         <button class="btn ghost" style="margin-top:10px" disabled="@_uploading" @onclick="ChangePhoto">
             @(_uploading ? "Téléversement…" : "Changer ma photo")
         </button>

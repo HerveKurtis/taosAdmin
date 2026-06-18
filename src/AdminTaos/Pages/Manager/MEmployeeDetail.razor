@@ -1,6 +1,7 @@
 @page "/m/team/{Id}"
 @layout DashboardLayout
 @inject IDataService Data
+@inject AuthState Auth
 @inject NavigationManager Nav
 
 <button class="backlink" @onclick='() => Nav.NavigateTo("m/team")'>‹ Équipe</button>
@@ -12,48 +13,209 @@
 else
 {
     <h1>@_a.FullName</h1>
+
     <div class="panel">
         <div class="field"><span>Email</span><b>@_a.Email</b></div>
-        <div class="field"><span>Rôles</span><b>@RoleNames()</b></div>
+        <div class="field"><span>Rôle système</span><b>@SystemLabel()</b></div>
+        @if (_a.Type == AccountType.Employee)
+        {
+            <div class="field"><span>Rôles métier</span><b>@JobRoleNames()</b></div>
+        }
         <div class="field"><span>Statut</span><b><span class="@StatusPill()">@StatusFr()</span></b></div>
     </div>
+
     @if (_a.Status == AccountStatus.Pending)
     {
-        <div class="row2" style="max-width:420px">
-            <button class="btn danger" @onclick="() => Set(AccountStatus.Rejected)">Refuser</button>
-            <button class="btn primary" @onclick="() => Set(AccountStatus.Active)">Valider le compte</button>
+        <div class="lab">Valider l'inscription</div>
+        <p class="sub" style="margin-top:-4px">Choisis le rôle système et les rôles métier (pour un Collaborateur).</p>
+
+        @if (_roles.Count > 0)
+        {
+            <div class="lab" style="margin-top:14px">Rôles métier (si Collaborateur)</div>
+            @foreach (var r in _roles)
+            {
+                <button class="card @(_selected.Contains(r.Id) ? "glow" : "")" @onclick="() => Toggle(r.Id)">
+                    <div class="t">@r.Name</div>
+                    <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné ✓" : "Toucher pour choisir")</div>
+                </button>
+            }
+        }
+        else
+        {
+            <div class="panel"><div class="m">Aucun rôle métier créé. Va dans <a href="m/roles">Rôles métier</a> pour en créer.</div></div>
+        }
+
+        @if (_err is not null) { <p class="pill bad" style="display:block;margin-top:10px">@_err</p> }
+
+        <div class="actions">
+            <button class="btn primary" @onclick="ValidateAsCollaborateur">Valider en tant que Collaborateur</button>
+            <button class="btn ghost"    @onclick="ValidateAsAdmin">Valider en tant qu'Admin</button>
+            <button class="btn danger"   @onclick="Reject">Refuser</button>
         </div>
     }
     else if (_a.Status == AccountStatus.Active)
     {
-        <button class="btn danger" @onclick="() => Set(AccountStatus.Rejected)">Suspendre</button>
+        @if (_a.Type == AccountType.Employee)
+        {
+            <div class="lab">Actions</div>
+            <p class="sub" style="margin-top:-4px">Tu peux modifier les rôles métier, promouvoir en Admin, ou suspendre.</p>
+
+            @if (_roles.Count > 0)
+            {
+                <div class="lab" style="margin-top:14px">Rôles métier actuels</div>
+                @foreach (var r in _roles)
+                {
+                    <button class="card @(_selected.Contains(r.Id) ? "glow" : "")" @onclick="() => Toggle(r.Id)">
+                        <div class="t">@r.Name</div>
+                        <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné ✓" : "Toucher pour choisir")</div>
+                    </button>
+                }
+                <button class="btn ghost block" style="margin-top:10px" @onclick="UpdateJobRoles">Mettre à jour les rôles métier</button>
+            }
+
+            <div class="actions" style="margin-top:18px">
+                <button class="btn primary" @onclick="PromoteToAdmin">Promouvoir en Admin</button>
+                @if (!IsSelf)
+                {
+                    <button class="btn danger" @onclick="Suspend">Suspendre</button>
+                }
+            </div>
+        }
+        else // Admin
+        {
+            <div class="lab">Actions</div>
+            <p class="sub" style="margin-top:-4px">Tu peux rétrograder cet Admin en Collaborateur. Un Admin n'a pas de rôles métier.</p>
+
+            @if (_roles.Count > 0)
+            {
+                <div class="lab" style="margin-top:14px">Rôles métier (si rétrogradation)</div>
+                @foreach (var r in _roles)
+                {
+                    <button class="card @(_selected.Contains(r.Id) ? "glow" : "")" @onclick="() => Toggle(r.Id)">
+                        <div class="t">@r.Name</div>
+                        <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné ✓" : "Toucher pour choisir")</div>
+                    </button>
+                }
+            }
+
+            @if (_err is not null) { <p class="pill bad" style="display:block;margin-top:10px">@_err</p> }
+
+            <div class="actions" style="margin-top:18px">
+                @if (!IsSelf)
+                {
+                    <button class="btn ghost" @onclick="DemoteToCollaborateur">Rétrograder en Collaborateur</button>
+                    <button class="btn danger" @onclick="Suspend">Suspendre</button>
+                }
+                else
+                {
+                    <p class="pill wait" style="display:block">Tu ne peux pas modifier ton propre rôle ou statut.</p>
+                }
+            </div>
+        }
     }
-    else
+    else // Rejected
     {
-        <button class="btn primary" @onclick="() => Set(AccountStatus.Active)">Réactiver</button>
+        <div class="actions" style="margin-top:18px">
+            <button class="btn primary" @onclick="Reactivate">Réactiver en Collaborateur</button>
+        </div>
     }
 }
 
 @code {
     [Parameter] public string Id { get; set; } = "";
     Account? _a;
-    Dictionary<string,string> _roles = new();
+    List<JobRole> _roles = new();
+    readonly HashSet<string> _selected = new();
+    Dictionary<string,string> _roleNames = new();
+    string? _err;
+
+    bool IsSelf => _a is not null && Auth.CurrentUser?.Id == _a.Id;
 
     protected override async Task OnInitializedAsync()
     {
         _a = await Data.GetAccountAsync(Id);
-        _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
+        _roles = await Data.GetJobRolesAsync();
+        _roleNames = _roles.ToDictionary(r => r.Id, r => r.Name);
+        if (_a is not null)
+            foreach (var id in _a.JobRoleIds) _selected.Add(id);
     }
-    string RoleNames() => _a!.JobRoleIds.Count == 0 ? "—"
-        : string.Join(", ", _a.JobRoleIds.Select(id => _roles.GetValueOrDefault(id,"?")));
+
+    void Toggle(string id) { if (!_selected.Add(id)) _selected.Remove(id); }
+
+    string SystemLabel() => _a!.Type == AccountType.Manager ? "Admin" : "Collaborateur";
+
+    string JobRoleNames() => _a!.JobRoleIds.Count == 0 ? "—"
+        : string.Join(", ", _a.JobRoleIds.Select(id => _roleNames.GetValueOrDefault(id, "?")));
+
     string StatusFr() => _a!.Status switch {
         AccountStatus.Active => "Actif", AccountStatus.Pending => "En attente", _ => "Refusé" };
     string StatusPill() => _a!.Status switch {
         AccountStatus.Active => "pill ok", AccountStatus.Pending => "pill wait", _ => "pill bad" };
 
-    async Task Set(AccountStatus s)
+    async Task ValidateAsCollaborateur()
     {
-        _a!.Status = s;
+        if (_selected.Count == 0) { _err = "Choisis au moins un rôle métier pour un Collaborateur."; return; }
+        _a!.Type = AccountType.Employee;
+        _a.Status = AccountStatus.Active;
+        _a.JobRoleIds = _selected.ToList();
+        await Data.UpdateAccountAsync(_a);
+        Nav.NavigateTo("m/team");
+    }
+
+    async Task ValidateAsAdmin()
+    {
+        _a!.Type = AccountType.Manager;
+        _a.Status = AccountStatus.Active;
+        _a.JobRoleIds = new();
+        await Data.UpdateAccountAsync(_a);
+        Nav.NavigateTo("m/team");
+    }
+
+    async Task Reject()
+    {
+        _a!.Status = AccountStatus.Rejected;
+        await Data.UpdateAccountAsync(_a);
+        Nav.NavigateTo("m/team");
+    }
+
+    async Task UpdateJobRoles()
+    {
+        _a!.JobRoleIds = _selected.ToList();
+        await Data.UpdateAccountAsync(_a);
+        Nav.NavigateTo("m/team");
+    }
+
+    async Task PromoteToAdmin()
+    {
+        _a!.Type = AccountType.Manager;
+        _a.JobRoleIds = new();
+        await Data.UpdateAccountAsync(_a);
+        Nav.NavigateTo("m/team");
+    }
+
+    async Task DemoteToCollaborateur()
+    {
+        if (IsSelf) { _err = "Tu ne peux pas te rétrograder toi-même."; return; }
+        if (_selected.Count == 0) { _err = "Choisis au moins un rôle métier pour la rétrogradation."; return; }
+        _a!.Type = AccountType.Employee;
+        _a.JobRoleIds = _selected.ToList();
+        await Data.UpdateAccountAsync(_a);
+        Nav.NavigateTo("m/team");
+    }
+
+    async Task Suspend()
+    {
+        if (IsSelf) { _err = "Tu ne peux pas te suspendre toi-même."; return; }
+        _a!.Status = AccountStatus.Rejected;
+        await Data.UpdateAccountAsync(_a);
+        Nav.NavigateTo("m/team");
+    }
+
+    async Task Reactivate()
+    {
+        _a!.Status = AccountStatus.Active;
+        if (_a.Type == AccountType.Manager) _a.Type = AccountType.Employee;
+        if (_selected.Count > 0) _a.JobRoleIds = _selected.ToList();
         await Data.UpdateAccountAsync(_a);
         Nav.NavigateTo("m/team");
     }

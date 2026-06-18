@@ -12,7 +12,7 @@
 
 @{ var rows = (_tab == "sent" ? _rows.Where(r => r.ts.Status == TimesheetStatus.Sent) : _rows).ToList(); }
 @{ var _tsCols = new List<ResponsiveTable<(Timesheet ts, ServiceEvent ev, string who)>.Column> {
-    new("Employé", r => @<b>@r.who</b>),
+    new("Collaborateur", r => @<b>@r.who</b>),
     new("Event", r => @<text>@r.ev.Name</text>),
     new("Date", r => @<text>@r.ev.Date.Fmt()</text>),
     new("Durée", r => @<text>@r.ts.Duration.Fmt()</text>),

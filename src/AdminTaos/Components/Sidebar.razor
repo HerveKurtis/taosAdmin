@@ -41,7 +41,7 @@
     public record NavItem(string Href, string Icon, string Label);
     [Parameter] public EventCallback OnNavigate { get; set; }
 
-    string RoleLabel => Auth.CurrentUser?.Type == AccountType.Manager ? "Manager" : "Employé";
+    string RoleLabel => Auth.CurrentUser?.Type == AccountType.Manager ? "Admin" : "Collaborateur";
 
     string Initials => string.Concat((Auth.CurrentUser?.FullName ?? "")
         .Split(' ', StringSplitOptions.RemoveEmptyEntries)
@@ -52,7 +52,7 @@
           {
               new("/m","dashboard","Tableau de bord"), new("/m/events","calendar","Events"),
               new("/m/team","users","Équipe"), new("/m/timesheets","clipboard","Timesheets"),
-              new("/m/roles","tag","Rôles"), new("/m/profile","user","Profil"),
+              new("/m/roles","tag","Rôles métier"), new("/m/profile","user","Profil"),
           }
         : new()
           {

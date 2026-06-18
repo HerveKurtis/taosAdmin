@@ -35,7 +35,7 @@
 @code {
     bool _uploading;
     string? _error;
-    string _roleNames = "Employé";
+    string _roleNames = "Collaborateur";
 
     string Initials => string.Concat((Auth.CurrentUser?.FullName ?? "")
         .Split(' ', StringSplitOptions.RemoveEmptyEntries)
@@ -46,8 +46,8 @@
         var roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
         var ids = Auth.CurrentUser?.JobRoleIds ?? new();
         _roleNames = ids.Count == 0
-            ? "Employé"
-            : "Employé · " + string.Join(", ", ids.Select(id => roles.GetValueOrDefault(id, "?")));
+            ? "Collaborateur"
+            : "Collaborateur · " + string.Join(", ", ids.Select(id => roles.GetValueOrDefault(id, "?")));
     }
 
     async Task ChangePhoto()

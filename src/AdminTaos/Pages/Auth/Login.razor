@@ -2,17 +2,21 @@
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<h1 style="text-align:center;font-size:20px">Connexion</h1>
-<p class="sub" style="text-align:center">Entre ton email et ton mot de passe.</p>
+<h1>Connexion</h1>
+<p class="sub">Entre ton email et ton mot de passe pour accéder à ton espace.</p>
 
-<div class="field"><span>Email</span>
-    <input @bind="_email" placeholder="ton.email@exemple.com" /></div>
-<div class="field"><span>Mot de passe</span>
-    <input type="password" @bind="_password" /></div>
+<div class="stacked">
+    <span class="lbl">Email</span>
+    <input @bind="_email" placeholder="ton.email@exemple.com" type="email" autocomplete="username" />
+</div>
+<div class="stacked">
+    <span class="lbl">Mot de passe</span>
+    <input @bind="_password" type="password" placeholder="••••••••" autocomplete="current-password" />
+</div>
 
-@if (_error) { <p class="pill bad" style="display:block;text-align:center;margin-top:10px">@_errorMessage</p> }
+@if (_error) { <p class="pill bad" style="display:block;text-align:center;margin-top:8px">@_errorMessage</p> }
 
-<button class="btn primary block" style="margin-top:14px" @onclick="DoLogin">Se connecter</button>
+<button class="btn primary block" @onclick="DoLogin">Se connecter</button>
 <a class="btn ghost block" href="register">Créer un compte</a>
 
 @code {

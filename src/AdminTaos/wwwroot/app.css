@@ -52,13 +52,51 @@ h1{font-family:var(--pf);font-weight:700;font-size:22px;margin-bottom:2px}
 .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30}
 .content{padding:24px;flex:1;width:100%;max-width:1200px}
 
-/* ---------- Auth shell ---------- */
-.auth-wrap{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
-.auth-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;
-  padding:30px 26px;width:100%;max-width:420px;box-shadow:0 10px 40px rgba(20,25,40,.06)}
-.auth-card .wm{font-family:var(--pf);font-weight:700;letter-spacing:4px;font-size:28px;
-  color:var(--gold);text-align:center;display:block;margin-bottom:4px}
-.auth-card .tag{text-align:center;color:var(--mut);font-size:11px;letter-spacing:3px;margin-bottom:22px}
+/* ---------- Auth shell — premium dark ---------- */
+.auth-wrap{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:#141414;color:#EDEDED;
+  background-image:radial-gradient(circle at 20% 20%,rgba(231,199,107,.06),transparent 45%),
+                   radial-gradient(circle at 80% 80%,rgba(194,161,77,.04),transparent 50%)}
+.auth-card{background:#1A1A1A;border:1px solid #2A2A2A;border-radius:18px;
+  padding:38px 30px 32px;width:100%;max-width:440px;color:#EDEDED;
+  box-shadow:0 24px 80px rgba(0,0,0,.5),0 0 0 1px rgba(231,199,107,.04) inset}
+.auth-card .wm{font-family:var(--pf);font-weight:700;letter-spacing:6px;font-size:34px;
+  background:linear-gradient(135deg,#E7C76B,#B8902F);-webkit-background-clip:text;background-clip:text;
+  color:transparent;text-align:center;display:block;margin-bottom:6px}
+.auth-card .tag{text-align:center;color:#7A7568;font-size:10.5px;letter-spacing:4px;margin-bottom:32px}
+
+/* Auth-scoped overrides: dark form + stacked layout */
+.auth-card h1{color:#EDEDED;font-family:var(--pf);font-weight:700;font-size:22px;
+  text-align:center;margin-bottom:6px}
+.auth-card .sub{color:#9A9A9A;font-size:13px;text-align:center;margin-bottom:22px}
+.auth-card .stacked{display:block;margin-bottom:14px}
+.auth-card .stacked .lbl{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;
+  color:#9A9A9A;margin-bottom:7px;font-weight:600}
+.auth-card .stacked input{display:block;width:100%;max-width:none;
+  background:#141414;border:1px solid #2A2A2A;color:#EDEDED;border-radius:10px;
+  padding:13px 14px;font-size:14px;font-family:var(--sf);transition:border-color .15s,box-shadow .15s,background .15s}
+.auth-card .stacked input::placeholder{color:#5A554A}
+.auth-card .stacked input:focus{outline:none;border-color:#E7C76B;background:#1A1A1A;
+  box-shadow:0 0 0 3px rgba(231,199,107,.12)}
+.auth-card .stacked.row2{display:flex;gap:12px}
+.auth-card .stacked.row2 > div{flex:1}
+.auth-card .btn.primary{margin-top:18px;letter-spacing:.5px;font-weight:700;padding:14px;border-radius:10px}
+.auth-card .btn.ghost{background:transparent;color:#E7C76B;border:1px solid #3A2F16;margin-top:10px}
+.auth-card .btn.ghost:hover{border-color:#E7C76B}
+.auth-card .pill.bad{background:rgba(229,138,138,.12);color:#E58A8A;border:1px solid #5A2A2A;
+  padding:10px 12px;border-radius:10px;font-weight:500}
+.auth-card .lab{color:#9A9A9A;letter-spacing:1.2px;margin-top:18px}
+.auth-card .card{background:#141414;border:1px solid #2A2A2A;color:#EDEDED;
+  border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s}
+.auth-card .card:hover{border-color:#3A2F16;background:#1B1B1B}
+.auth-card .card.glow{background:linear-gradient(160deg,#211D12,#1A1A1A);border-color:#3A2F16;
+  box-shadow:0 0 20px rgba(214,176,84,.12)}
+.auth-card .card .t{color:#E7C76B}
+.auth-card .card .m{color:#9A9A9A}
+.auth-card .backlink{color:#9A9A9A}
+.auth-card .backlink:hover{color:#E7C76B}
+.auth-card .empty .e-t,.auth-card .empty{color:#EDEDED}
+.auth-card .empty .ic{color:#3A2F16}
 
 /* ---------- Cards / panels ---------- */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;
@@ -200,3 +238,7 @@ h1{font-family:var(--pf);font-weight:700;font-size:22px;margin-bottom:2px}
   .side .foot .who{justify-content:center}
   .side .foot .who-txt{display:none}
 }
+
+/* Suppress visible focus ring on programmatically focused page titles */
+h1:focus{outline:none}
+h1:focus-visible{outline:2px solid transparent}

@@ -1,13 +1,35 @@
 @page "/register"
+@inject IDataService Data
+@inject AuthState Auth
+@inject NavigationManager Nav
 
-<button class="backlink" @onclick='() => Nav.NavigateTo("login")'>‹ Connexion</button>
-<h1 style="font-size:20px">Créer un compte</h1>
-<p class="sub">Ton compte sera validé par un manager.</p>
+<h1>Créer un compte</h1>
+<p class="sub">Ton compte sera validé par un manager avant l'accès.</p>
 
-<div class="field"><span>Nom complet</span><input @bind="_name" /></div>
-<div class="field"><span>Email</span><input @bind="_email" /></div>
-<div class="field"><span>Mot de passe</span><input type="password" @bind="_pwd" /></div>
+<div class="stacked row2">
+    <div>
+        <span class="lbl">Prénom</span>
+        <input @bind="_firstName" placeholder="Prénom" autocomplete="given-name" />
+    </div>
+    <div>
+        <span class="lbl">Nom</span>
+        <input @bind="_lastName" placeholder="Nom" autocomplete="family-name" />
+    </div>
+</div>
+<div class="stacked">
+    <span class="lbl">Email</span>
+    <input @bind="_email" placeholder="ton.email@exemple.com" type="email" autocomplete="email" />
+</div>
+<div class="stacked">
+    <span class="lbl">Mot de passe</span>
+    <input @bind="_pwd" type="password" placeholder="Minimum 6 caractères" autocomplete="new-password" />
+</div>
+
 <div class="lab">Rôle(s) souhaité(s)</div>
+@if (_roles.Count == 0)
+{
+    <p class="pill bad" style="display:block;text-align:center">Aucun rôle disponible. Contacte ton manager.</p>
+}
 @foreach (var r in _roles)
 {
     <button class="card @(_selected.Contains(r.Id) ? "glow" : "")" @onclick="() => Toggle(r.Id)">
@@ -15,19 +37,18 @@
         <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné ✓" : "Toucher pour choisir")</div>
     </button>
 }
-@if (_err) { <p class="pill bad" style="display:block;margin-top:10px">@_errMessage</p> }
-<button class="btn primary block" style="margin-top:14px" @onclick="Submit">S'inscrire</button>
+
+@if (_err) { <p class="pill bad" style="display:block;text-align:center;margin-top:10px">@_errMessage</p> }
+
+<button class="btn primary block" @onclick="Submit">S'inscrire</button>
+<a class="btn ghost block" href="login">‹ Retour à la connexion</a>
 
 @code {
-    [Inject] IDataService Data { get; set; } = default!;
-    [Inject] AuthState Auth { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-
     List<JobRole> _roles = new();
     readonly HashSet<string> _selected = new();
-    string _name = "", _email = "", _pwd = "";
+    string _firstName = "", _lastName = "", _email = "", _pwd = "";
     bool _err;
-    string _errMessage = "Remplis nom, email, mot de passe et au moins un rôle.";
+    string _errMessage = "Remplis tous les champs et choisis au moins un rôle.";
 
     protected override async Task OnInitializedAsync() => _roles = await Data.GetJobRolesAsync();
 
@@ -36,17 +57,19 @@
     async Task Submit()
     {
         _err = false;
-        if (string.IsNullOrWhiteSpace(_name)
+        if (string.IsNullOrWhiteSpace(_firstName)
+            || string.IsNullOrWhiteSpace(_lastName)
             || string.IsNullOrWhiteSpace(_email)
             || string.IsNullOrWhiteSpace(_pwd)
             || _selected.Count == 0)
         {
             _err = true;
-            _errMessage = "Remplis nom, email, mot de passe et au moins un rôle.";
+            _errMessage = "Remplis prénom, nom, email, mot de passe et choisis au moins un rôle.";
             return;
         }
 
-        var ok = await Auth.RegisterAsync(_name.Trim(), _email.Trim(), _pwd, _selected.ToList());
+        var fullName = $"{_firstName.Trim()} {_lastName.Trim()}";
+        var ok = await Auth.RegisterAsync(fullName, _email.Trim(), _pwd, _selected.ToList());
         if (!ok)
         {
             _err = true;

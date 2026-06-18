@@ -16,3 +16,6 @@ publish/
 
 # Claude Code workspace
 .claude/
+
+# Firebase CLI local cache
+.firebase/

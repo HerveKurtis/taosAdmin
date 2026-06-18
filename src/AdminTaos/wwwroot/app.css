@@ -299,3 +299,20 @@ h1:focus-visible{outline:2px solid transparent}
   box-shadow:0 0 0 3px rgba(184,144,47,.12)
 }
 .textarea::placeholder{color:var(--mut)}
+
+/* ---------- App splash (while AuthState initializes) ---------- */
+.taos-splash{
+  position:fixed;inset:0;z-index:10000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  background:#141414;
+  background-image:radial-gradient(circle at 20% 20%,rgba(231,199,107,.07),transparent 45%),
+                   radial-gradient(circle at 80% 80%,rgba(194,161,77,.05),transparent 50%)
+}
+.taos-splash .wm{
+  font-family:'Playfair',Georgia,serif;font-weight:700;letter-spacing:8px;font-size:52px;
+  background:linear-gradient(135deg,#E7C76B,#B8902F);-webkit-background-clip:text;
+  background-clip:text;color:transparent;
+  animation:taos-pulse 1.8s ease-in-out infinite
+}
+.taos-splash .tag{color:#7A7568;font-size:11px;letter-spacing:4px;font-family:var(--sf,system-ui)}
+@keyframes taos-pulse{0%,100%{opacity:1}50%{opacity:.6}}

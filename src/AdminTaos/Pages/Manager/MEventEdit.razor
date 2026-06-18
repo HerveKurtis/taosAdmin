@@ -15,8 +15,6 @@
     <div class="field"><span>RDV</span><input type="time" @bind="_meet" /></div>
     <div class="field"><span>Fin prévue</span><input type="time" @bind="_end" /></div>
     <div class="field"><span>Contact sur place</span><input @bind="_e.OnSiteContact" /></div>
-    <div class="field"><span>Ouvert à l'inscription</span>
-        <ToggleSwitch Value="_e.IsOpenForSignup" ValueChanged="v => _e.IsOpenForSignup = v" /></div>
 </div>
 
 <div class="lab">Consignes</div>
@@ -30,7 +28,7 @@
 
 @code {
     [Parameter] public string? Id { get; set; }
-    ServiceEvent _e = new();
+    ServiceEvent _e = new() { IsOpenForSignup = true };
     List<JobRole> _roles = new();
     bool _isNew, _err;
     DateOnly _date = DateOnly.FromDateTime(DateTime.Today.AddDays(1));

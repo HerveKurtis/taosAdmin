@@ -2,22 +2,35 @@
 @inject NavigationGuard Guard
 @inject NavigationManager Nav
 
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(AuthShell)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(AuthShell)"><p>Page introuvable.</p></LayoutView>
-    </NotFound>
-</Router>
+@if (!_ready)
+{
+    <div class="taos-splash">
+        <div class="wm">TAOS</div>
+        <div class="tag">THE ART OF SERVICE</div>
+    </div>
+}
+else
+{
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(AuthShell)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(AuthShell)"><p>Page introuvable.</p></LayoutView>
+        </NotFound>
+    </Router>
+}
 
 @code {
+    bool _ready;
+
     protected override async Task OnInitializedAsync()
     {
         await Auth.InitializeAsync();
         Nav.LocationChanged += (_, __) => Enforce();
         Auth.OnChange += Enforce;
+        _ready = true;
         Enforce();
     }
 

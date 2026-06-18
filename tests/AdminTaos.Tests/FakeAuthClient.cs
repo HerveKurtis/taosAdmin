@@ -44,5 +44,10 @@ public class FakeAuthClient : IAuthClient
 
     public Task<string?> GetCurrentUidAsync() => Task.FromResult(_currentUid);
 
-    public Task InitializeAsync() => Task.CompletedTask;
+    public Task InitializeAsync()
+    {
+        // Simulate Firebase's onAuthStateChanged firing once on init with current state.
+        OnAuthChanged?.Invoke(_currentUid);
+        return Task.CompletedTask;
+    }
 }

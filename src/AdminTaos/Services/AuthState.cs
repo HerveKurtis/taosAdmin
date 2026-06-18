@@ -19,10 +19,24 @@ public class AuthState
     public event Action? OnChange;
     private void Notify() => OnChange?.Invoke();
 
-    /// <summary>Wires up the underlying auth listener and reads the current session (if any).</summary>
+    /// <summary>Wires up the underlying auth listener and reads the current session (if any).
+    /// Waits up to 1.5s for Firebase to fire its first onAuthStateChanged event so the
+    /// session hydration completes before the router renders — prevents the /login flash.</summary>
     public async Task InitializeAsync()
     {
-        await _auth.InitializeAsync();
+        var tcs = new TaskCompletionSource();
+        void FirstFire(string? _) { tcs.TrySetResult(); }
+        _auth.OnAuthChanged += FirstFire;
+        try
+        {
+            await _auth.InitializeAsync();
+            await Task.WhenAny(tcs.Task, Task.Delay(1500));
+        }
+        finally
+        {
+            _auth.OnAuthChanged -= FirstFire;
+        }
+
         var uid = await _auth.GetCurrentUidAsync();
         if (uid is not null) CurrentUser = await _data.GetAccountAsync(uid);
         Notify();

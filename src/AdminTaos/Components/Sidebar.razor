@@ -1,5 +1,7 @@
 @inject AuthState Auth
+@inject IDataService Data
 @inject NavigationManager Nav
+@implements IDisposable
 
 <aside class="side">
     <span class="wm">TAOS</span>
@@ -9,6 +11,11 @@
             <NavLink class="nav" href="@i.Href" Match="@(i.Href.Length<=2?NavLinkMatch.All:NavLinkMatch.Prefix)"
                      @onclick="OnNavigate">
                 <span class="i">@Ico(i.Icon)</span><span class="lbl">@i.Label</span>
+                @{ var b = BadgeFor(i.Href); }
+                @if (b is int n && n > 0)
+                {
+                    <span class="badge @(n > 5 ? "urgent" : "")">@(n > 99 ? "99+" : n.ToString())</span>
+                }
             </NavLink>
         }
     </nav>
@@ -52,6 +59,45 @@
               new("/e","dashboard","Tableau de bord"), new("/e/events","calendar","Events"),
               new("/e/hours","clock","Mes heures"), new("/e/profile","user","Profil"),
           };
+
+    int _pendingAccounts, _pendingTimesheets, _joinRequests;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCounts();
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        await LoadCounts();
+        StateHasChanged();
+    }
+
+    async Task LoadCounts()
+    {
+        if (Auth.CurrentUser?.Type != AccountType.Manager) return;
+        try
+        {
+            var accs = await Data.GetAccountsAsync();
+            _pendingAccounts = accs.Count(a => a.Status == AccountStatus.Pending);
+            var ts = await Data.GetTimesheetsAsync();
+            _pendingTimesheets = ts.Count(t => t.Status == TimesheetStatus.Sent);
+            var asgs = await Data.GetAssignmentsAsync();
+            _joinRequests = asgs.Count(a => a.Status == AssignmentStatus.PendingApproval);
+        }
+        catch { /* silent fail — badges just won't show, app keeps working */ }
+    }
+
+    int? BadgeFor(string href) => href switch
+    {
+        "/m/team"       => _pendingAccounts,
+        "/m/timesheets" => _pendingTimesheets,
+        "/m/events"     => _joinRequests,
+        _ => null
+    };
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 
     async Task DoLogout()
     {

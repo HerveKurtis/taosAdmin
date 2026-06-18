@@ -344,3 +344,167 @@ h1:focus-visible{outline:2px solid transparent}
     padding:0 4px;border-radius:8px;font-size:9.5px
   }
 }
+
+/* =================================================================== */
+/* ============ RESPONSIVE POLISH PASS — pro-level tuning ============ */
+/* =================================================================== */
+
+/* ---- General tap-target minimums (touch devices) ---- */
+@media (hover:none) and (pointer:coarse){
+  .btn{min-height:44px;padding-top:12px;padding-bottom:12px}
+  .stepper button{width:36px;height:36px;font-size:18px}
+  .toggle{width:48px;height:28px}
+  .toggle::after{width:24px;height:24px}
+  .toggle.on::after{left:22px}
+  .field input,.field select,.textarea,.stacked input,.stacked textarea{
+    font-size:16px /* prevents iOS auto-zoom on focus */
+  }
+  .backlink{padding:8px 4px;min-height:36px}
+}
+
+/* ---- Mobile (<768px): forms stack, inputs full width, tighter spacing ---- */
+@media (max-width:767px){
+  .content{padding:14px 14px calc(20px + env(safe-area-inset-bottom))}
+  h1{font-size:20px}
+  .sub{font-size:12.5px;margin-bottom:14px}
+
+  /* Field layout: stack label and input vertically */
+  .field{
+    flex-direction:column;align-items:stretch;gap:6px;
+    padding:10px 0;font-size:12px;letter-spacing:.3px
+  }
+  .field > span{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+  .field input,.field select{
+    max-width:100%;width:100%;padding:11px 12px;font-size:14px;border-radius:10px
+  }
+  .field b{text-align:left;font-size:14px}
+  .textarea{font-size:14px;min-height:120px}
+
+  /* Two-column rows become single column */
+  .row2{flex-direction:column;gap:8px}
+  .row2 .btn{width:100%}
+  .actions{flex-direction:column}
+  .actions .btn{width:100%}
+
+  /* Panels tighter, no max-width restriction on mobile */
+  .panel{padding:14px;max-width:none}
+  .card{padding:13px}
+  .card .t{font-size:14.5px}
+  .card .m{font-size:12.5px;line-height:1.6}
+
+  /* Stat cards: single column up to ~360px, two columns above */
+  .stats{grid-template-columns:1fr;gap:10px}
+  @media (min-width:420px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+  }
+  .stat{padding:13px 15px}
+  .stat .n{font-size:22px}
+  .stat .l{font-size:11.5px}
+
+  /* Buttons full-width by default on phone */
+  .btn:not(.row2 .btn):not(.actions .btn){width:100%;display:flex}
+
+  /* Header rows (h1 + action button) wrap nicely */
+  .content > div[style*="justify-content:space-between"]{flex-wrap:wrap}
+  .content > div[style*="justify-content:space-between"] > a.btn,
+  .content > div[style*="justify-content:space-between"] > button.btn{width:100%}
+
+  /* Top bar tightening */
+  .topbar{padding:0 14px;height:54px;flex:0 0 54px}
+  .topbar .ttl{font-size:16px}
+  .topbar .usr{gap:8px;font-size:12px}
+  .topbar .usr > :not(.av):not(.ava){display:none} /* hide username text, keep avatar only */
+
+  /* Drawer (sidebar on mobile): tighter padding */
+  .side{padding:16px 12px}
+  .side .wm{font-size:20px;padding:4px 12px 14px}
+  .side a.nav{padding:13px 12px}
+
+  /* Profile page avatar block: stack on small phones */
+  .panel[style*="display:flex"][style*="gap:18px"]{flex-direction:column;text-align:center}
+  .panel[style*="display:flex"][style*="gap:18px"] > div{width:100%}
+  .panel[style*="display:flex"][style*="gap:18px"] .t{font-size:16px;margin-top:8px}
+
+  /* Auth card: tighter padding on small phones */
+  .auth-card{padding:28px 22px 24px;max-width:100%}
+  .auth-card .wm{font-size:28px;letter-spacing:5px}
+  .auth-card .tag{margin-bottom:24px}
+
+  /* Long text protection */
+  .card .t,.card .m,.panel .t,.panel .m,.field b,.topbar .ttl{
+    word-break:break-word;overflow-wrap:anywhere
+  }
+}
+
+/* ---- Small phone (<400px): more compression ---- */
+@media (max-width:399px){
+  .content{padding:12px 12px calc(16px + env(safe-area-inset-bottom))}
+  h1{font-size:19px}
+  .panel{padding:12px}
+  .auth-card{padding:24px 18px 22px}
+  .auth-card .wm{font-size:24px;letter-spacing:4px}
+  .stacked input,.stacked textarea{padding:11px 12px}
+}
+
+/* ---- Tablet (768-1023px): tighter content padding, dashboard ergonomics ---- */
+@media (max-width:1023px) and (min-width:768px){
+  .content{padding:20px 22px;max-width:100%}
+  h1{font-size:21px}
+  .panel{padding:18px;max-width:none}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  /* Slightly tighter row gap for forms */
+  .field{padding:10px 0}
+  /* Tap-target tablet tuning (most tablets are touch) */
+  .btn{min-height:44px}
+  .stepper button{width:34px;height:34px}
+}
+
+/* ---- Desktop (≥1024px): no changes (already polished) ---- */
+
+/* ---- Landscape phones (heights <500px): reduce vertical splash space ---- */
+@media (max-height:500px) and (orientation:landscape){
+  .taos-splash .wm{font-size:36px;letter-spacing:6px}
+  .taos-splash .tag{font-size:10px}
+  .auth-wrap{padding:14px}
+  .auth-card{padding:22px 24px 18px}
+}
+
+/* ---- Wide screens (≥1400px): content can breathe a bit more ---- */
+@media (min-width:1400px){
+  .content{padding:32px 32px 28px;max-width:1280px}
+}
+
+/* ---- Safer drawer width (mobile) and scroll containment ---- */
+@media (max-width:767px){
+  .side{max-width:300px}
+  .layout.drawer{overflow:hidden} /* prevent body scroll while drawer open */
+}
+
+/* ---- Visual focus rings: subtle but visible on keyboard nav ---- */
+.btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.field input:focus,.field select:focus{outline:none;border-color:var(--gold)}
+.field input:focus-visible,.field select:focus-visible{
+  border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,144,47,.12)
+}
+.side a.nav:focus-visible,.side button.nav:focus-visible{
+  outline:2px solid var(--sidegold);outline-offset:-2px
+}
+
+/* ---- Image safety: prevent stretched/blown-up avatars and rt-empty icons ---- */
+img{max-width:100%;height:auto}
+.side .ava,.topbar .ava{max-width:28px;max-height:28px}
+
+/* ---- Tables/ResponsiveTable mobile polish (over what's already there) ---- */
+@media (max-width:767px){
+  .rt tbody tr{padding:14px 14px}
+  .rt tbody td{font-size:13.5px;padding:6px 0}
+  .rt tbody td::before{font-size:10.5px}
+  .rt-empty{padding:36px 14px}
+}
+
+/* ---- Form panels with margin between consecutive labeled sections ---- */
+.lab + .panel,.lab + .card{margin-top:0}
+.panel + .lab{margin-top:24px}
+@media (max-width:767px){
+  .panel + .lab{margin-top:18px}
+}

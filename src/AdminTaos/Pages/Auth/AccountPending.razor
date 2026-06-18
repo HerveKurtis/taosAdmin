@@ -1,5 +1,4 @@
 @page "/pending"
-@implements IDisposable
 @inject AuthState Auth
 @inject NavigationManager Nav
 
@@ -7,38 +6,14 @@
     <div class="ic">⏳</div>
     <div class="e-t">Inscription en attente</div>
     <p>Une fois que ton inscription sera validée par un admin, tu pourras te connecter sur le portail.</p>
-    <p style="margin-top:18px;font-size:11.5px;color:var(--mut);letter-spacing:.5px">
-        Redirection vers la page de connexion dans <b style="color:var(--gold)">@_countdown</b>s…
-    </p>
 </div>
 
+<button class="btn primary block" style="margin-top:24px" @onclick="GoToLogin">Se connecter</button>
+
 @code {
-    int _countdown = 5;
-    System.Threading.Timer? _timer;
-    bool _redirected;
-
-    protected override void OnInitialized()
+    async Task GoToLogin()
     {
-        _timer = new System.Threading.Timer(async _ =>
-        {
-            await InvokeAsync(async () =>
-            {
-                if (_redirected) return;
-                _countdown--;
-                if (_countdown <= 0)
-                {
-                    _redirected = true;
-                    _timer?.Dispose();
-                    await Auth.LogoutAsync();
-                    Nav.NavigateTo("login", replace: true);
-                }
-                else
-                {
-                    StateHasChanged();
-                }
-            });
-        }, null, 1000, 1000);
+        await Auth.LogoutAsync();
+        Nav.NavigateTo("login", replace: true);
     }
-
-    public void Dispose() => _timer?.Dispose();
 }

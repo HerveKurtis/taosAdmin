@@ -14,7 +14,15 @@ else
     <h1>@_e.Name</h1>
     <div class="panel">
         <div class="m">@_e.Venue — @_e.Address<br/>@_e.Date.Fmt() · @_e.MeetingTime.Fmt() → @_e.ExpectedEndTime.Fmt()
-        @if(!string.IsNullOrWhiteSpace(_e.OnSiteContact)){<text><br/>Contact : @_e.OnSiteContact</text>}</div>
+        @if (_responsable is not null)
+        {
+            <text><br/>Responsable du jour : @_responsable.FullName@(string.IsNullOrWhiteSpace(_responsable.Phone) ? "" : $" — {_responsable.Phone}")</text>
+        }
+        else if (!string.IsNullOrWhiteSpace(_e.OnSiteContact))
+        {
+            <text><br/>Contact : @_e.OnSiteContact</text>
+        }
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_e.Instructions))
@@ -80,12 +88,16 @@ else
     ServiceEvent? _e;
     List<Assignment> _confirmed = new(), _requests = new();
     Dictionary<string,string> _names = new(), _roles = new();
+    Account? _responsable;
 
     protected override async Task OnInitializedAsync() => await Load();
 
     async Task Load()
     {
         _e = await Data.GetEventAsync(Id);
+        _responsable = string.IsNullOrEmpty(_e?.ResponsableAccountId)
+            ? null
+            : await Data.GetAccountAsync(_e.ResponsableAccountId);
         _names = (await Data.GetAccountsAsync()).ToDictionary(a => a.Id, a => a.FullName);
         _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
         var asgs = await Data.GetAssignmentsForEventAsync(Id);

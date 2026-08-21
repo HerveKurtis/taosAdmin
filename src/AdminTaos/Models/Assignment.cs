@@ -8,4 +8,6 @@ public class Assignment
     public string JobRoleId { get; set; } = "";
     public AssignmentSource Source { get; set; } = AssignmentSource.AssignedByManager;
     public AssignmentStatus Status { get; set; } = AssignmentStatus.Confirmed;
+    /// <summary>Pointage du responsable du jour. Indépendant du chronomètre de la timesheet.</summary>
+    public PresenceStatus Presence { get; set; } = PresenceStatus.Expected;
 }

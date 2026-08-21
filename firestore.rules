@@ -39,14 +39,34 @@ service cloud.firestore {
 
     // ---------- Assignments ----------
     match /assignments/{id} {
-      allow read:   if isManager()
-                    || (isEmployee() && resource.data.accountId == request.auth.uid);
+      function eventOf(eid) {
+        return get(/databases/$(db)/documents/events/$(eid)).data;
+      }
+      // Le responsable du jour est désigné sur l'event, pas porté par le compte.
+      function isResponsableOf(eid) {
+        return isEmployee() && eventOf(eid).responsableAccountId == request.auth.uid;
+      }
+
+      // v1 simplification, identique à /events : tout compte actif lit, l'UI filtre.
+      // Une règle conditionnelle serait plus étroite mais déclencherait un get() par document,
+      // et Firestore plafonne à 20 get() par requête — un event d'une dizaine de personnes
+      // ferait échouer la requête entière.
+      allow read:   if isActive();
+
       allow create: if isManager()
                     || (isEmployee()
                         && request.resource.data.accountId == request.auth.uid
                         && request.resource.data.source    == "SelfRequest"
                         && request.resource.data.status    == "PendingApproval");
-      allow update: if isManager();
+
+      // Le responsable ne peut toucher que le pointage, jamais le reste de l'assignation.
+      // FirestoreDataService écrit via setDoc : diff() ne retient que les valeurs qui
+      // changent réellement, donc hasOnly(['presence']) reste satisfait.
+      allow update: if isManager()
+                    || (isResponsableOf(resource.data.eventId)
+                        && request.resource.data.diff(resource.data)
+                               .affectedKeys().hasOnly(['presence']));
+
       allow delete: if isManager();
     }
 

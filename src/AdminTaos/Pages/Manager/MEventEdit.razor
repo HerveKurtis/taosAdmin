@@ -14,7 +14,31 @@
     <div class="field"><span>Date</span><input type="date" @bind="_date" /></div>
     <div class="field"><span>RDV</span><input type="time" @bind="_meet" /></div>
     <div class="field"><span>Fin prévue</span><input type="time" @bind="_end" /></div>
-    <div class="field"><span>Contact sur place</span><input @bind="_e.OnSiteContact" /></div>
+</div>
+
+<div class="lab">Responsable du jour</div>
+<div class="panel">
+    @if (_responsable is not null)
+    {
+        <div class="field"><span>Désigné</span><b>@_responsable.FullName</b></div>
+        <button class="btn ghost block resp-clear" style="margin-top:10px" @onclick="ClearResponsable">Aucun responsable</button>
+    }
+    else
+    {
+        <div class="field"><span>Rechercher</span>
+            <input class="resp-search" @bind="_search" @bind:event="oninput" placeholder="Nom ou email" /></div>
+        @foreach (var a in Candidates)
+        {
+            <button class="card resp-option" data-account-id="@a.Id" @onclick="() => PickResponsable(a)">
+                <div class="t">@a.FullName</div>
+                <div class="m">@a.Email · @(a.Type == AccountType.Manager ? "Admin" : "Collaborateur")</div>
+            </button>
+        }
+        @if (Candidates.Count == 0)
+        {
+            <div class="m" style="margin-top:10px">Aucun compte actif ne correspond.</div>
+        }
+    }
 </div>
 
 <div class="lab">Effectif par rôle</div>
@@ -51,6 +75,9 @@ else
     [Parameter] public string? Id { get; set; }
     ServiceEvent _e = new() { IsOpenForSignup = true };
     List<JobRole> _roles = new();
+    List<Account> _accounts = new();
+    Account? _responsable;
+    string _search = "";
     bool _isNew, _err;
     DateOnly _date = DateOnly.FromDateTime(DateTime.Today.AddDays(1));
     TimeOnly _meet = new(17,0), _end = new(23,0);
@@ -58,12 +85,46 @@ else
     protected override async Task OnInitializedAsync()
     {
         _roles = await Data.GetJobRolesAsync();
+        _accounts = (await Data.GetAccountsAsync())
+            .Where(a => a.Status == AccountStatus.Active).ToList();
         _isNew = string.IsNullOrEmpty(Id);
         if (!_isNew)
         {
             _e = await Data.GetEventAsync(Id!) ?? new ServiceEvent();
             _date = _e.Date; _meet = _e.MeetingTime; _end = _e.ExpectedEndTime;
+            // Après _accounts : le responsable se résout depuis cette liste.
+            _responsable = _accounts.FirstOrDefault(a => a.Id == _e.ResponsableAccountId);
         }
+    }
+
+    /// <summary>Comptes proposés : actifs uniquement, Admins compris. Sans recherche on en montre
+    /// huit pour ne pas noyer l'écran ; avec recherche on élargit sans jamais tout déverser.</summary>
+    IReadOnlyList<Account> Candidates
+    {
+        get
+        {
+            var q = _search.Trim();
+            return _accounts
+                .Where(a => q.Length == 0
+                            || a.FullName.Contains(q, StringComparison.OrdinalIgnoreCase)
+                            || a.Email.Contains(q, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(a => a.FullName)
+                .Take(q.Length == 0 ? 8 : 25)
+                .ToList();
+        }
+    }
+
+    void PickResponsable(Account a)
+    {
+        _responsable = a;
+        _e.ResponsableAccountId = a.Id;
+    }
+
+    void ClearResponsable()
+    {
+        _responsable = null;
+        _e.ResponsableAccountId = null;
+        _search = "";
     }
 
     void SetCount(string roleId, int v)

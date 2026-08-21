@@ -51,4 +51,80 @@ public class ResponsableTests : BunitContext
         Assert.Contains("Julie", cut.Markup);
         Assert.DoesNotContain("Responsable du jour", cut.Markup);
     }
+
+    [Fact]
+    public void The_search_filters_candidates_by_name_and_email()
+    {
+        Db();
+        var cut = Render<AdminTaos.Pages.Manager.MEventEdit>(p => p.Add(x => x.Id, "evt-gala"));
+
+        cut.Find("input.resp-search").Input("marc");
+        Assert.Single(cut.FindAll("button.resp-option"));
+        Assert.Contains("Marc D.", cut.Find("button.resp-option").TextContent);
+
+        cut.Find("input.resp-search").Input("sarah@taos.be");
+        Assert.Single(cut.FindAll("button.resp-option"));
+        Assert.Contains("Sarah K.", cut.Find("button.resp-option").TextContent);
+    }
+
+    [Fact]
+    public void Suspended_and_pending_accounts_are_not_selectable()
+    {
+        Db();
+        var cut = Render<AdminTaos.Pages.Manager.MEventEdit>(p => p.Add(x => x.Id, "evt-gala"));
+
+        cut.Find("input.resp-search").Input("Tom");
+        Assert.Empty(cut.FindAll("button.resp-option"));
+
+        cut.Find("input.resp-search").Input("Léa");
+        Assert.Empty(cut.FindAll("button.resp-option"));
+    }
+
+    [Fact]
+    public void An_admin_is_selectable_as_responsable()
+    {
+        Db();
+        var cut = Render<AdminTaos.Pages.Manager.MEventEdit>(p => p.Add(x => x.Id, "evt-gala"));
+
+        cut.Find("input.resp-search").Input("Hervé");
+        Assert.Single(cut.FindAll("button.resp-option"));
+    }
+
+    [Fact]
+    public async Task Picking_a_candidate_then_saving_persists_the_responsable()
+    {
+        var db = Db();
+        var cut = Render<AdminTaos.Pages.Manager.MEventEdit>(p => p.Add(x => x.Id, "evt-gala"));
+
+        cut.Find("input.resp-search").Input("marc");
+        cut.Find($"button.resp-option[data-account-id='{SeedData.EmpActiveServer}']").Click();
+        cut.Find("button.btn.primary.block").Click();
+
+        Assert.Equal(SeedData.EmpActiveServer, (await db.GetEventAsync("evt-gala"))!.ResponsableAccountId);
+    }
+
+    [Fact]
+    public async Task Clearing_the_responsable_puts_the_field_back_to_null()
+    {
+        var db = Db();
+        var e = (await db.GetEventAsync("evt-gala"))!;
+        e.ResponsableAccountId = SeedData.EmpActiveServer;
+        await db.UpdateEventAsync(e);
+
+        var cut = Render<AdminTaos.Pages.Manager.MEventEdit>(p => p.Add(x => x.Id, "evt-gala"));
+        Assert.Contains("Marc D.", cut.Markup);
+
+        cut.Find("button.resp-clear").Click();
+        cut.Find("button.btn.primary.block").Click();
+
+        Assert.Null((await db.GetEventAsync("evt-gala"))!.ResponsableAccountId);
+    }
+
+    [Fact]
+    public void The_on_site_contact_text_field_is_gone()
+    {
+        Db();
+        var cut = Render<AdminTaos.Pages.Manager.MEventEdit>(p => p.Add(x => x.Id, "evt-gala"));
+        Assert.DoesNotContain("Contact sur place", cut.Markup);
+    }
 }

@@ -163,6 +163,35 @@ public class EventTeamTests : BunitContext
         Assert.Contains("Échec du pointage", cut.Markup);
     }
 
+    [Fact]
+    public async Task The_responsable_gets_a_banner_and_a_link_on_the_event_page()
+    {
+        await Setup(SeedData.EmpActiveServer);
+        var cut = Render<AdminTaos.Pages.Employee.EEventDetail>(p => p.Add(x => x.Id, "evt-gala"));
+
+        Assert.Contains("Tu es responsable du jour", cut.Markup);
+        Assert.Contains("e/events/evt-gala/equipe", cut.Markup);
+    }
+
+    [Fact]
+    public async Task A_plain_collaborateur_gets_no_banner()
+    {
+        await Setup(SeedData.EmpActiveHost);
+        var cut = Render<AdminTaos.Pages.Employee.EEventDetail>(p => p.Add(x => x.Id, "evt-gala"));
+
+        Assert.DoesNotContain("Tu es responsable du jour", cut.Markup);
+        Assert.DoesNotContain("/equipe", cut.Markup);
+    }
+
+    [Fact]
+    public async Task The_admin_event_page_links_to_the_team_page()
+    {
+        await Setup(SeedData.MgrId);
+        var cut = Render<AdminTaos.Pages.Manager.MEventDetail>(p => p.Add(x => x.Id, "evt-gala"));
+
+        Assert.Contains("m/events/evt-gala/equipe", cut.Markup);
+    }
+
     /// <summary>Lit normalement, refuse toute écriture d'assignation — tient lieu de refus des règles Firestore.</summary>
     sealed class RefusingDataService : InMemoryDataService, IDataService
     {

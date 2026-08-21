@@ -26,6 +26,16 @@ else
         </div>
     }
 
+    @if (Auth.CurrentUser?.Id == _e.ResponsableAccountId)
+    {
+        <div class="panel" style="margin-top:18px">
+            <div class="t">Tu es responsable du jour</div>
+            <div class="m">Tu peux consulter ton équipe et pointer les présences.</div>
+            <NavLink class="btn primary block" style="margin-top:12px"
+                     href="@($"e/events/{Id}/equipe")">Gérer mon équipe</NavLink>
+        </div>
+    }
+
     <div style="margin-top:18px">
     @if (_asg is null && _e.IsOpenForSignup && MyRoleForEvent() is not null)
     {

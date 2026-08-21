@@ -78,7 +78,8 @@ else
     protected override async Task OnInitializedAsync() => await Load();
     async Task Load()
     {
-        var u = Auth.CurrentUser!;
+        // Le garde de navigation redirige, mais la page peut être rendue avant : ne pas lever.
+        if (Auth.CurrentUser is not { } u) return;
         _myRoleIds = u.JobRoleIds.ToHashSet();
         _e = await Data.GetEventAsync(Id);
         _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
@@ -94,8 +95,7 @@ else
     async Task RequestJoin()
     {
         var role = MyRoleForEvent();
-        if (role is null) return;
-        var u = Auth.CurrentUser!;
+        if (role is null || Auth.CurrentUser is not { } u) return;
         await Data.CreateAssignmentAsync(new Assignment {
             EventId = Id, AccountId = u.Id, JobRoleId = role,
             Source = AssignmentSource.SelfRequest, Status = AssignmentStatus.PendingApproval });

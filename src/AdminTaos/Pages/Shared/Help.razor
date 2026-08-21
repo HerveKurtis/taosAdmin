@@ -1,0 +1,210 @@
+@page "/e/aide"
+@page "/m/aide"
+@layout DashboardLayout
+@inject AuthState Auth
+
+@* Deux routes, un seul composant : NavigationGuard n'inspecte que le premier segment
+   du chemin, donc chacun entre par son espace sans qu'aucune règle ne change. *@
+
+<h1>Aide</h1>
+<p class="sub">Comment faire, écran par écran. Les captures viennent d'un jeu de démonstration.</p>
+
+<div class="faq">
+
+    <div class="lab">Mon service</div>
+
+    <details class="faq-q">
+        <summary>Comment démarrer mon service ?</summary>
+        <div class="faq-a">
+            <p>Le bouton <b>Commencer mon shift</b> apparaît sur ton tableau de bord <b>le jour même
+            de la prestation</b>, et seulement si ton affectation est confirmée. La veille, il n'y est pas.</p>
+            <img src="help/02-accueil.png" alt="Tableau de bord avec le bouton Commencer mon shift" />
+            <p>Une fois lancé, le chronomètre affiche ton <b>temps presté</b> et le bandeau passe au vert.</p>
+            <img src="help/03-en-service.png" alt="Écran de service en cours" />
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>Comment prendre une pause ?</summary>
+        <div class="faq-a">
+            <p>Appuie sur <b>Prendre une pause</b>. Le bandeau passe à l'ambre, le chronomètre bascule
+            sur la durée de ta pause, et ton temps presté se fige.</p>
+            <img src="help/04-en-pause.png" alt="Écran en pause" />
+            <p>Pour repartir, appuie sur <b>Reprendre le service</b>. Ta pause vient s'ajouter au cumul,
+            affiché sous le chronomètre.</p>
+            <img src="help/05-reprise.png" alt="Retour en service avec la pause cumulée" />
+            <p>Tu peux prendre <b>autant de pauses que nécessaire</b>. Elles sont toutes déduites de
+            ton temps presté.</p>
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>Comment terminer et envoyer mes heures ?</summary>
+        <div class="faq-a">
+            <p><b>Ce sont deux gestes, pas un.</b> C'est l'erreur la plus fréquente.</p>
+            <p>D'abord <b>Terminer mon shift</b>. Un récapitulatif s'affiche avec trois nombres :
+            l'amplitude de ton service, le total de tes pauses, et ton temps presté.</p>
+            <img src="help/06-recap.png" alt="Récapitulatif de fin de service" />
+            <p>Ensuite, et c'est indispensable, <b>Envoyer ma timesheet pour validation</b>.
+            Tant que tu n'as pas appuyé, l'admin ne reçoit rien.</p>
+            <img src="help/07-envoyee.png" alt="Timesheet envoyée pour validation" />
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>J'ai fermé l'application pendant mon service, j'ai perdu mes heures ?</summary>
+        <div class="faq-a">
+            <p>Non. Le chronomètre n'est pas un compteur qui tourne dans ton téléphone : l'heure de
+            début est enregistrée, le temps est recalculé à chaque affichage. Tu peux fermer l'app,
+            verrouiller ton écran, changer d'appareil.</p>
+            <p>Pour reprendre, retourne sur ton tableau de bord : le bouton indique
+            <b>Reprendre mon shift en cours</b>.</p>
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>J'ai oublié de terminer mon service à l'heure</summary>
+        <div class="faq-a">
+            <p>Termine-le quand tu t'en aperçois, puis envoie-le quand même. L'admin peut
+            <b>corriger l'heure de début, l'heure de fin et le total de pause</b> avant de valider.
+            Signale-lui simplement la bonne heure.</p>
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>Ma timesheet a été refusée</summary>
+        <div class="faq-a">
+            <p>Va dans <b>Mes heures</b> et ouvre la ligne concernée : le motif du refus y est affiché.
+            Un bouton <b>Renvoyer la timesheet</b> te permet de la soumettre à nouveau une fois le
+            point réglé avec l'admin.</p>
+        </div>
+    </details>
+
+    <div class="lab">Responsable du jour</div>
+
+    <details class="faq-q">
+        <summary>Comment savoir si je suis responsable ?</summary>
+        <div class="faq-a">
+            <p>Ouvre la prestation concernée. Si tu as été désigné, un bandeau
+            <b>Tu es responsable du jour</b> apparaît, avec un bouton <b>Gérer mon équipe</b>.
+            Sinon, tu ne vois rien de particulier — et c'est normal.</p>
+            <img src="help/08-bandeau-responsable.png" alt="Bandeau responsable du jour sur la fiche d'une prestation" />
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>Que puis-je faire depuis l'écran d'équipe ?</summary>
+        <div class="faq-a">
+            <p>Tu vois le rappel du lieu et des horaires, puis ton équipe groupée par rôle métier,
+            avec pour chaque rôle l'effectif attendu. Chaque téléphone est cliquable : un appui
+            lance l'appel.</p>
+            <img src="help/09-equipe-du-jour.png" alt="Écran de l'équipe du jour" />
+            <p>Tu pointes chacun <b>Présent</b> ou <b>Absent</b>. Le décompte en haut se met à jour,
+            et l'admin le voit depuis la fiche de la prestation.</p>
+            <img src="help/10-pointage.png" alt="Pointage des présences" />
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>Le pointage remplace-t-il le décompte des heures ?</summary>
+        <div class="faq-a">
+            <p>Non, et c'est volontaire. Le pointage répond à « qui est là ? ». Le chronomètre répond
+            à « combien d'heures ? ». <b>Chacun démarre et termine son propre service</b>, même
+            pointé présent par toi.</p>
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>Un membre de mon équipe affiche « Téléphone non renseigné »</summary>
+        <div class="faq-a">
+            <p>Cette personne n'a pas encore rempli son téléphone dans son profil. Demande-lui d'aller
+            dans <b>Profil</b> puis <b>Mes informations</b>. Tu ne peux pas le saisir à sa place.</p>
+        </div>
+    </details>
+
+    <div class="lab">Mon profil</div>
+
+    <details class="faq-q">
+        <summary>Où mettre mes coordonnées bancaires ?</summary>
+        <div class="faq-a">
+            <p>Dans <b>Profil</b>, panneau <b>Mes informations</b> : téléphone, adresse postale et IBAN.
+            Les champs sont directement modifiables, il suffit d'appuyer sur <b>Enregistrer</b>.</p>
+            <p>L'IBAN est remis en forme automatiquement — tu peux le taper avec des espaces — et
+            refusé s'il est manifestement incorrect.</p>
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>Qui peut voir mon IBAN ?</summary>
+        <div class="faq-a">
+            <p><b>Toi et les admins</b>, personne d'autre. Ton IBAN et ton adresse ne sont jamais
+            visibles par tes collègues, y compris par un responsable du jour.</p>
+            <p>Ce que tes collègues peuvent voir quand vous travaillez ensemble se limite à ton
+            <b>nom, ta photo et ton téléphone</b>.</p>
+        </div>
+    </details>
+
+    <details class="faq-q">
+        <summary>Changer ma photo</summary>
+        <div class="faq-a">
+            <p>Dans <b>Profil</b>, bouton <b>Changer ma photo</b>. L'image est recadrée et compressée
+            automatiquement. Taille maximale : 2 Mo.</p>
+        </div>
+    </details>
+
+    @if (Auth.CurrentUser?.Type == AccountType.Manager)
+    {
+        <div class="lab">Administration</div>
+
+        <details class="faq-q">
+            <summary>Définir l'effectif d'une prestation</summary>
+            <div class="faq-a">
+                <p>Dans la fiche de l'event, <b>Éditer</b>, bloc <b>Effectif par rôle</b> : un compteur
+                par rôle métier. C'est <b>optionnel</b> — sans effectif, tu peux quand même assigner
+                du monde. Le renseigner te donne l'avancement (2 / 4 assignés) et le suivi des présences.</p>
+            </div>
+        </details>
+
+        <details class="faq-q">
+            <summary>Assigner ou retirer quelqu'un</summary>
+            <div class="faq-a">
+                <p><b>Assigner du personnel</b> depuis la fiche de l'event. Une personne n'apparaît
+                sous un rôle que si ce rôle métier figure sur sa fiche d'équipe.</p>
+                <p>Pour corriger une erreur, le bouton <b>Retirer</b> sur la ligne concernée, avec
+                confirmation. Le retrait est <b>refusé si la personne a déjà démarré son service</b> :
+                ses heures seraient perdues. Dans ce cas, corrige sa timesheet.</p>
+            </div>
+        </details>
+
+        <details class="faq-q">
+            <summary>Désigner un responsable du jour</summary>
+            <div class="faq-a">
+                <p>Dans <b>Éditer</b> l'event, bloc <b>Responsable du jour</b> : cherche par nom ou par
+                email, puis touche la carte. Admins et collaborateurs peuvent être désignés.
+                <b>Aucun responsable</b> annule la désignation.</p>
+            </div>
+        </details>
+
+        <details class="faq-q">
+            <summary>Corriger des heures ou une pause</summary>
+            <div class="faq-a">
+                <p>Ouvre la timesheet depuis <b>Timesheets</b>. Tu peux modifier l'heure de début,
+                l'heure de fin, et le <b>total de pause retenu en minutes</b>.</p>
+                <p>Les pauses réellement pointées restent affichées au-dessus, en lecture seule :
+                ta correction vient à côté, elle n'efface pas ce que la personne a saisi.</p>
+            </div>
+        </details>
+
+        <details class="faq-q">
+            <summary>Valider une inscription</summary>
+            <div class="faq-a">
+                <p><b>Équipe</b>, onglet <b>En attente</b>. Ouvre la fiche, choisis les rôles métier,
+                puis valide en tant que <b>Collaborateur</b> ou <b>Admin</b>. Un Collaborateur doit
+                avoir au moins un rôle métier, sans quoi il n'apparaîtra dans aucune liste d'assignation.</p>
+            </div>
+        </details>
+    }
+
+</div>
+
+@code { }

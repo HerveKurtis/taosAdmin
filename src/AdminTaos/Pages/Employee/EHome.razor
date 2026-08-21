@@ -43,7 +43,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var u = Auth.CurrentUser!;
+        // Le garde de navigation redirige, mais la page peut être rendue avant : ne pas lever.
+        if (Auth.CurrentUser is not { } u) return;
         FirstName = u.FullName.Split(' ')[0];
         var roleMap = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
         RoleLine = string.Join(", ", u.JobRoleIds.Select(id => roleMap.GetValueOrDefault(id,"?")));

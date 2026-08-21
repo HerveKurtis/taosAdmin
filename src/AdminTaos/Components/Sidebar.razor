@@ -53,11 +53,13 @@
               new("/m","dashboard","Tableau de bord"), new("/m/events","calendar","Events"),
               new("/m/team","users","Équipe"), new("/m/timesheets","clipboard","Timesheets"),
               new("/m/roles","tag","Rôles métier"), new("/m/profile","user","Profil"),
+              new("/m/aide","help","Aide"),
           }
         : new()
           {
               new("/e","dashboard","Tableau de bord"), new("/e/events","calendar","Events"),
               new("/e/hours","clock","Mes heures"), new("/e/profile","user","Profil"),
+              new("/e/aide","help","Aide"),
           };
 
     int _pendingAccounts, _pendingTimesheets, _joinRequests;
@@ -110,6 +112,11 @@
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         @switch (key)
         {
+            case "help":
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"></path>
+                <path d="M12 17h.01"></path>
+                break;
             case "dashboard":
                 <rect x="3" y="3" width="7" height="7" rx="1"></rect>
                 <rect x="14" y="3" width="7" height="7" rx="1"></rect>

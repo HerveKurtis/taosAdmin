@@ -43,7 +43,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var u = Auth.CurrentUser!;
+        // Le garde de navigation redirige, mais la page peut être rendue avant : ne pas lever.
+        if (Auth.CurrentUser is not { } u) return;
         _e = await Data.GetEventAsync(Id);
         var asg = (await Data.GetAssignmentsForAccountAsync(u.Id)).FirstOrDefault(a => a.EventId == Id);
         if (asg is not null)

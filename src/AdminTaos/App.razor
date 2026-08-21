@@ -30,8 +30,10 @@ else
         await Auth.InitializeAsync();
         Nav.LocationChanged += (_, __) => Enforce();
         Auth.OnChange += Enforce;
-        _ready = true;
+        // Enforce avant _ready : sinon le routeur rend la page protégée, dont le code
+        // s'exécute avec CurrentUser à null, et la redirection arrive après le plantage.
         Enforce();
+        _ready = true;
     }
 
     void Enforce()

@@ -32,6 +32,7 @@ public static class SeedData
                     JobRoleIds = new() { RoleServer } },
             new() { Id = EmpActiveHost, FullName = "Sarah K.", Email = "sarah@taos.be",
                     Type = AccountType.Employee, Status = AccountStatus.Active,
+                    Phone = "0470 99 88 77",
                     JobRoleIds = new() { RoleHost } },
             new() { Id = EmpPending, FullName = "Léa B.", Email = "lea@taos.be",
                     Type = AccountType.Employee, Status = AccountStatus.Pending,
@@ -67,7 +68,7 @@ public static class SeedData
             Id = "evt-today", Name = "Déjeuner d'affaires", Venue = "Steigenberger",
             Address = "Av. Louise 71, Bruxelles", Date = today,
             MeetingTime = new TimeOnly(11,0), ExpectedEndTime = new TimeOnly(16,0),
-            DressCode = "Noir élégant", Instructions = "", OnSiteContact = "",
+            DressCode = "Noir élégant", Instructions = "", OnSiteContact = "", ResponsableAccountId = EmpActiveHost,
             IsOpenForSignup = false, Status = EventStatus.InProgress,
             RoleNeeds = new() {
                 new() { JobRoleId = RoleServer, CountNeeded = 1, HourlyRate = 14m },
@@ -162,6 +163,10 @@ public static class SeedData
             new() { Id = "ts-6", AssignmentId = aP3Server.Id,
                     StartedAt = DateTime.Today.AddDays(-3).AddHours(9).AddMinutes(28),
                     EndedAt   = DateTime.Today.AddDays(-3).AddHours(15).AddMinutes(10),
+                    Breaks = new() {
+                        new() { StartedAt = DateTime.Today.AddDays(-3).AddHours(12),
+                                EndedAt   = DateTime.Today.AddDays(-3).AddHours(12).AddMinutes(45) },
+                    },
                     Status = TimesheetStatus.ToSend },
         };
 

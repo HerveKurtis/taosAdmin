@@ -9,5 +9,8 @@ public class Account
     public AccountStatus Status { get; set; } = AccountStatus.Pending;
     public List<string> JobRoleIds { get; set; } = new();
     public string? PhotoUrl { get; set; }
+    public string? Phone { get; set; }
+    public string? PostalAddress { get; set; }
+    public string? Iban { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 }

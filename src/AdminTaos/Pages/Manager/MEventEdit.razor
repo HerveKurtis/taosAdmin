@@ -1,3 +1,4 @@
+@using System.Globalization
 @page "/m/events/new"
 @page "/m/events/{Id}/edit"
 @layout DashboardLayout
@@ -16,6 +17,35 @@
     <div class="field"><span>Fin prévue</span><input type="time" @bind="_end" /></div>
     <div class="field"><span>Contact sur place</span><input @bind="_e.OnSiteContact" /></div>
 </div>
+
+<div class="lab">Effectif par rôle</div>
+@if (_roles.Count == 0)
+{
+    <div class="panel"><div class="m">Aucun rôle métier créé. Va dans <a href="m/roles">Rôles métier</a> pour en créer avant de pouvoir assigner du personnel.</div></div>
+}
+else
+{
+    <p class="sub" style="margin-top:-4px">Combien de personnes par rôle, et à quel taux horaire. Sans effectif défini, tu ne pourras assigner personne sur cet event.</p>
+    @foreach (var r in _roles)
+    {
+        var need = _e.RoleNeeds.FirstOrDefault(n => n.JobRoleId == r.Id);
+        <div class="panel role-need" data-role-id="@r.Id">
+            <div class="field">
+                <span>@r.Name</span>
+                <Stepper Value="@(need?.CountNeeded ?? 0)" Min="0" Max="99"
+                         ValueChanged="@(v => SetCount(r.Id, v))" />
+            </div>
+            @if (need is not null)
+            {
+                <div class="field">
+                    <span>Taux horaire</span>
+                    <input class="rate" type="number" step="0.5" min="0" inputmode="decimal"
+                           value="@Rate(need)" @onchange="e => SetRate(r.Id, e.Value)" />
+                </div>
+            }
+        </div>
+    }
+}
 
 <div class="lab">Consignes</div>
 <div class="panel">
@@ -52,9 +82,15 @@
         else if (v == 0) _e.RoleNeeds.Remove(n);
         else n.CountNeeded = v;
     }
+    // Rendered into <input type="number">, which only accepts an invariant separator.
+    static string Rate(RoleNeed n) => n.HourlyRate.ToString(CultureInfo.InvariantCulture);
+
     void SetRate(string roleId, object? raw)
     {
-        if (!decimal.TryParse(raw?.ToString(), out var rate)) return;
+        // Accept both "16.5" (the number input) and "16,5" (fr keyboards / pasted values).
+        var text = raw?.ToString()?.Trim().Replace(',', '.');
+        if (!decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var rate)
+            || rate < 0) return;
         var n = _e.RoleNeeds.FirstOrDefault(x => x.JobRoleId == roleId)
                 ?? AddEmpty(roleId);
         n.HourlyRate = rate;

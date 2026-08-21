@@ -7,24 +7,49 @@
 <h1>Assigner du personnel</h1>
 <p class="sub">@_event?.Name</p>
 
-@foreach (var r in _eventRoles)
+@if (_err is not null) { <p class="pill bad" style="display:block;margin:12px 0">@_err</p> }
+
+@if (_loading)
 {
-    <div class="lab">@r.Name</div>
-    @if (!_employees.Any(e => e.JobRoleIds.Contains(r.Id)))
+    <div class="panel"><div class="m">Chargement…</div></div>
+}
+else if (_event is null)
+{
+    <div class="panel"><p class="sub">Event introuvable.</p></div>
+}
+else if (_eventRoles.Count == 0)
+{
+    <div class="panel">
+        <div class="t">Aucun rôle défini pour cet event</div>
+        <div class="m">Définis d'abord l'effectif par rôle (combien de personnes, à quel taux) dans la fiche de l'event. Sans ça, il n'y a rien sur quoi assigner.</div>
+        <NavLink class="btn primary block" style="margin-top:12px" href="@($"m/events/{Id}/edit")">Définir l'effectif</NavLink>
+    </div>
+}
+else
+{
+    @foreach (var r in _eventRoles)
     {
-        <div class="panel"><div class="m">Aucun employé actif pour ce rôle</div></div>
-    }
-    @foreach (var emp in _employees.Where(e => e.JobRoleIds.Contains(r.Id)))
-    {
-        var already = _assigned.Any(a => a.AccountId == emp.Id && a.JobRoleId == r.Id);
-        <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-            <div><div class="t">@emp.FullName</div>
-                <div class="m">@(already ? "Déjà assigné" : "Disponible")</div></div>
-            @if (!already)
-            {
-                <button class="btn primary" @onclick="() => Assign(emp.Id, r.Id)">Assigner</button>
-            }
-        </div>
+        var candidates = _employees.Where(e => e.JobRoleIds.Contains(r.Id)).ToList();
+        <div class="lab">@r.Name</div>
+        @if (candidates.Count == 0)
+        {
+            <div class="panel">
+                <div class="m">Aucun collaborateur actif ne porte ce rôle métier. Attribue-le depuis la fiche d'un membre de l'équipe.</div>
+                <NavLink class="btn ghost block" style="margin-top:12px" href="m/team">Voir l'équipe</NavLink>
+            </div>
+        }
+        @foreach (var emp in candidates)
+        {
+            var already = _assigned.Any(a => a.AccountId == emp.Id && a.JobRoleId == r.Id);
+            <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+                <div><div class="t">@emp.FullName</div>
+                    <div class="m">@(already ? "Déjà assigné" : "Disponible")</div></div>
+                @if (!already)
+                {
+                    <button class="btn primary" @onclick="() => Assign(emp.Id, r.Id)">Assigner</button>
+                }
+            </div>
+        }
     }
 }
 
@@ -34,24 +59,38 @@
     List<Account> _employees = new();
     List<JobRole> _eventRoles = new();
     List<Assignment> _assigned = new();
+    bool _loading = true;
+    string? _err;
 
     protected override async Task OnInitializedAsync() => await Load();
 
     async Task Load()
     {
         _event = await Data.GetEventAsync(Id);
+        if (_event is null) { _loading = false; return; }
+
         var roles = await Data.GetJobRolesAsync();
-        _eventRoles = roles.Where(r => _event!.RoleNeeds.Any(n => n.JobRoleId == r.Id)).ToList();
+        _eventRoles = roles.Where(r => _event.RoleNeeds.Any(n => n.JobRoleId == r.Id)).ToList();
         _employees = (await Data.GetAccountsAsync())
             .Where(a => a.Type == AccountType.Employee && a.Status == AccountStatus.Active).ToList();
         _assigned = await Data.GetAssignmentsForEventAsync(Id);
+        _loading = false;
     }
 
     async Task Assign(string accId, string roleId)
     {
-        await Data.CreateAssignmentAsync(new Assignment {
-            EventId = Id, AccountId = accId, JobRoleId = roleId,
-            Source = AssignmentSource.AssignedByManager, Status = AssignmentStatus.Confirmed });
-        await Load();
+        _err = null;
+        try
+        {
+            await Data.CreateAssignmentAsync(new Assignment {
+                EventId = Id, AccountId = accId, JobRoleId = roleId,
+                Source = AssignmentSource.AssignedByManager, Status = AssignmentStatus.Confirmed });
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            // A silent no-op here is what made this page impossible to diagnose from the outside.
+            _err = $"Échec de l'assignation : {ex.Message}";
+        }
     }
 }

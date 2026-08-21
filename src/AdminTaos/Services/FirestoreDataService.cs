@@ -51,6 +51,11 @@ public class FirestoreDataService : IDataService
     public async Task<Account>  CreateAccountAsync(Account a)      { await SetAsync("accounts", a.Id, a); return a; }
     public Task                 UpdateAccountAsync(Account a)      => SetAsync("accounts", a.Id, a);
 
+    // ---------- Profiles ----------
+    public Task<List<Profile>> GetProfilesAsync()                   => GetAllAsync<Profile>("profiles");
+    public Task                UpsertProfileAsync(Profile p)        => SetAsync("profiles", p.Id, p);
+    public Task                DeleteProfileAsync(string id)        => DeleteAsync("profiles", id);
+
     // ---------- Job roles ----------
     public Task<List<JobRole>>  GetJobRolesAsync()                  => GetAllAsync<JobRole>("jobRoles");
     public async Task<JobRole>  CreateJobRoleAsync(JobRole r)       { await SetAsync("jobRoles", r.Id, r); return r; }

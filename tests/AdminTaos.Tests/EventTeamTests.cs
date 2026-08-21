@@ -78,9 +78,9 @@ public class EventTeamTests : BunitContext
     public async Task A_phone_number_is_a_tel_link_and_its_absence_is_stated()
     {
         var db = await Setup(SeedData.EmpActiveServer);
-        var sarah = (await db.GetAccountAsync(SeedData.EmpActiveHost))!;
+        var sarah = (await db.GetProfilesAsync()).Single(p => p.Id == SeedData.EmpActiveHost);
         sarah.Phone = "0470 99 88 77";
-        await db.UpdateAccountAsync(sarah);
+        await db.UpsertProfileAsync(sarah);
 
         var cut = Page();
 
@@ -196,9 +196,9 @@ public class EventTeamTests : BunitContext
     public async Task Each_member_shows_a_photo_or_their_initials()
     {
         var db = await Setup(SeedData.EmpActiveServer);
-        var sarah = (await db.GetAccountAsync(SeedData.EmpActiveHost))!;
+        var sarah = (await db.GetProfilesAsync()).Single(p => p.Id == SeedData.EmpActiveHost);
         sarah.PhotoUrl = "https://example.test/sarah.jpg";
-        await db.UpdateAccountAsync(sarah);
+        await db.UpsertProfileAsync(sarah);
 
         var cut = Page();
 
@@ -230,6 +230,62 @@ public class EventTeamTests : BunitContext
 
         var cut = Page();
         Assert.DoesNotContain(cut.FindAll(".lab"), l => l.TextContent.Contains(" / "));
+    }
+
+    [Fact]
+    public async Task The_team_loads_without_ever_reading_the_accounts_collection()
+    {
+        // Reproduit le refus Firestore : un collaborateur n'a pas le droit de lire /accounts.
+        // Si la page en dépend, elle casse en production pour tout responsable non-admin.
+        var db = new AccountsLockedDataService();
+
+        var me = (await db.GetAccountForSignInAsync(SeedData.EmpActiveServer))!;
+        var fake = new FakeAuthClient();
+        fake.PreRegister(me.Id, me.Email, "pwd");
+        var auth = new AuthState(fake, db);
+        await auth.LoginAsync(me.Email, "pwd");
+
+        Services.AddSingleton<IDataService>(db);
+        Services.AddSingleton(auth);
+
+        var cut = Page();
+
+        Assert.Empty(cut.FindAll(".team-denied"));
+        Assert.Equal(2, cut.FindAll(".team-member").Count);
+        Assert.Contains("Sarah K.", cut.Markup);
+    }
+
+    [Fact]
+    public async Task A_member_without_a_shared_profile_is_still_listed()
+    {
+        var db = await Setup(SeedData.EmpActiveServer);
+        await db.DeleteProfileAsync(SeedData.EmpActiveHost);
+
+        var cut = Page();
+
+        Assert.Equal(2, cut.FindAll(".team-member").Count);
+        Assert.Contains("Profil incomplet", cut.Markup);
+    }
+
+    /// <summary>Refuse la lecture de /accounts comme le feraient les règles pour un collaborateur.</summary>
+    sealed class AccountsLockedDataService : InMemoryDataService, IDataService
+    {
+        public AccountsLockedDataService()
+        {
+            var e = GetEventAsync("evt-gala").Result!;
+            e.ResponsableAccountId = SeedData.EmpActiveServer;
+            UpdateEventAsync(e).Wait();
+
+            CreateAssignmentAsync(new Assignment {
+                Id = "asg-gala-host", EventId = "evt-gala", AccountId = SeedData.EmpActiveHost,
+                JobRoleId = SeedData.RoleHost, Status = AssignmentStatus.Confirmed }).Wait();
+        }
+
+        /// <summary>Accès direct réservé au test : la connexion lit bien son propre compte.</summary>
+        public Task<Account?> GetAccountForSignInAsync(string id) => base.GetAccountAsync(id);
+
+        Task<List<Account>> IDataService.GetAccountsAsync()
+            => throw new InvalidOperationException("Missing or insufficient permissions.");
     }
 
     /// <summary>Lit normalement, refuse toute écriture d'assignation — tient lieu de refus des règles Firestore.</summary>

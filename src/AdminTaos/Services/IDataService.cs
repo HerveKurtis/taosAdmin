@@ -11,6 +11,11 @@ public interface IDataService
     Task<Account> CreateAccountAsync(Account a);
     Task UpdateAccountAsync(Account a);
 
+    // Profiles — fiche partagée, lisible par tout compte actif
+    Task<List<Profile>> GetProfilesAsync();
+    Task UpsertProfileAsync(Profile p);
+    Task DeleteProfileAsync(string id);
+
     // Job roles
     Task<List<JobRole>> GetJobRolesAsync();
     Task<JobRole> CreateJobRoleAsync(JobRole r);

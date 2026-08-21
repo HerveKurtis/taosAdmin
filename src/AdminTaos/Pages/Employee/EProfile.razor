@@ -65,6 +65,7 @@
             if (url is null) return;
             Auth.CurrentUser.PhotoUrl = url;
             await Data.UpdateAccountAsync(Auth.CurrentUser);
+            await Data.UpsertProfileAsync(Profile.From(Auth.CurrentUser));
             Auth.Refresh();
         }
         catch (Exception ex) { _error = ex.Message ?? "Échec du téléversement"; }

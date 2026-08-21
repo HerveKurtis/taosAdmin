@@ -23,6 +23,15 @@ service cloud.firestore {
       allow delete: if isManager();
     }
 
+    // ---------- Profiles ----------
+    // Fiche partagée : nom, téléphone, photo. Rien d'autre n'a le droit d'atterrir ici.
+    // C'est ce qui permet à un responsable du jour non-admin de voir son équipe sans que
+    // /accounts — qui porte l'IBAN et l'adresse — s'ouvre à quiconque.
+    match /profiles/{uid} {
+      allow read:  if isActive();
+      allow write: if isSelf(uid) || isManager();
+    }
+
     // ---------- Job roles ----------
     match /jobRoles/{id} {
       allow read:  if isActive();

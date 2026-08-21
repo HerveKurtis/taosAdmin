@@ -9,10 +9,13 @@ public class InMemoryDataService : IDataService
     private readonly List<ServiceEvent> _events;
     private readonly List<Assignment> _assignments;
     private readonly List<Timesheet> _timesheets;
+    private readonly List<Profile> _profiles;
 
     public InMemoryDataService()
     {
         (_accounts, _roles, _events, _assignments, _timesheets) = SeedData.Build();
+        // Reflète l'état après reprise : chaque compte a sa fiche partagée.
+        _profiles = _accounts.Select(Profile.From).ToList();
     }
 
     private static Task<T> Done<T>(T v) => Task.FromResult(v);
@@ -28,6 +31,16 @@ public class InMemoryDataService : IDataService
         if (i >= 0) _accounts[i] = a;
         return Task.CompletedTask;
     }
+
+    public Task<List<Profile>> GetProfilesAsync() => Done(_profiles.ToList());
+    public Task UpsertProfileAsync(Profile p)
+    {
+        var i = _profiles.FindIndex(x => x.Id == p.Id);
+        if (i >= 0) _profiles[i] = p; else _profiles.Add(p);
+        return Task.CompletedTask;
+    }
+    public Task DeleteProfileAsync(string id)
+    { _profiles.RemoveAll(p => p.Id == id); return Task.CompletedTask; }
 
     public Task<List<JobRole>> GetJobRolesAsync() => Done(_roles.ToList());
     public Task<JobRole> CreateJobRoleAsync(JobRole r) { _roles.Add(r); return Done(r); }

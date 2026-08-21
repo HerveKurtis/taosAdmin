@@ -48,6 +48,8 @@ public class AuthState
         var uid = await _auth.LoginAsync(email.Trim(), password);
         if (uid is null) return false;
         CurrentUser = await _data.GetAccountAsync(uid);
+        // Republie la fiche partagée : c'est ce qui rattrape les comptes antérieurs à /profiles.
+        if (CurrentUser is not null) await _data.UpsertProfileAsync(Profile.From(CurrentUser));
         Notify();
         return CurrentUser is not null;
     }
@@ -67,6 +69,7 @@ public class AuthState
             CreatedAt = DateTime.UtcNow
         };
         await _data.CreateAccountAsync(acc);
+        await _data.UpsertProfileAsync(Profile.From(acc));
         CurrentUser = acc;
         Notify();
         return true;

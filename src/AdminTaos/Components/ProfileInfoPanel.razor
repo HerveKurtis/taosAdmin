@@ -46,6 +46,7 @@
         Account.PostalAddress = Blank(_address);
         Account.Iban = iban;
         await Data.UpdateAccountAsync(Account);
+        await Data.UpsertProfileAsync(Profile.From(Account));
 
         _iban = iban;
         _saved = true;

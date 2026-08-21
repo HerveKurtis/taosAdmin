@@ -55,7 +55,21 @@
         // to demote an Admin or reactivate a suspended member, and it is reached from here.
         _accounts = await Data.GetAccountsAsync();
         _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
+        await BackfillProfiles();
     }
+
+    /// <summary>Les comptes créés avant /profiles n'ont pas de fiche partagée. L'admin, seul à
+    /// pouvoir lire tous les comptes, la crée ou la rafraîchit en passant par cette page.</summary>
+    async Task BackfillProfiles()
+    {
+        var known = (await Data.GetProfilesAsync()).ToDictionary(p => p.Id);
+        foreach (var a in _accounts)
+        {
+            if (known.TryGetValue(a.Id, out var p)
+                && p.FullName == a.FullName && p.Phone == a.Phone && p.PhotoUrl == a.PhotoUrl)
+                continue;
+            await Data.UpsertProfileAsync(Profile.From(a));
+        }    }
 
     static string TypeLabel(Account a) => a.Type == AccountType.Manager ? "Admin" : "Collaborateur";
 

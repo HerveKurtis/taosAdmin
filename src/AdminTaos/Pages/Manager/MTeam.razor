@@ -7,20 +7,19 @@
     <h1>Équipe</h1>
     <NavLink class="btn ghost" href="m/roles">Gérer les rôles métier</NavLink>
 </div>
-<div class="row2" style="max-width:320px;margin:14px 0">
+<div class="row2" style="max-width:480px;margin:14px 0">
     <button class="btn @(_tab=="active"?"primary":"ghost")" @onclick='() => _tab="active"'>Actifs</button>
     <button class="btn @(_tab=="pending"?"primary":"ghost")" @onclick='() => _tab="pending"'>En attente</button>
+    <button class="btn @(_tab=="suspended"?"primary":"ghost")" @onclick='() => _tab="suspended"'>Suspendus</button>
 </div>
 
-@{ var list = (_tab == "active"
-       ? _emps.Where(e => e.Status == AccountStatus.Active)
-       : _emps.Where(e => e.Status == AccountStatus.Pending)).ToList(); }
 @{ var _teamCols = new List<ResponsiveTable<Account>.Column> {
     new("Nom", e => @<b>@e.FullName</b>),
-    new("Rôles", e => @<text>@RoleNames(e)</text>),
-    new("Statut", e => @<span class="pill @(e.Status==AccountStatus.Active?"ok":"wait")">@(e.Status==AccountStatus.Active?"Actif":"En attente")</span>)
+    new("Type", e => @<text>@TypeLabel(e)</text>),
+    new("Rôles métier", e => @<text>@RoleNames(e)</text>),
+    new("Statut", e => @<span class="pill @StatusPill(e)">@StatusFr(e)</span>)
 }; }
-<ResponsiveTable TItem="Account" Items="list"
+<ResponsiveTable TItem="Account" Items="Visible"
     EmptyIcon="◴" EmptyTitle="Personne ici"
     RowClick="@(e => Nav.NavigateTo($"m/team/{e.Id}"))"
     Columns="_teamCols" />
@@ -30,14 +29,43 @@
     public string? Filter { get; set; }
 
     string _tab = "active";
-    List<Account> _emps = new();
+
+    /// <summary>Accounts shown under the current tab: Admins and Collaborateurs together.</summary>
+    List<Account> Visible
+    {
+        get
+        {
+            var wanted = _tab switch {
+                "pending"   => AccountStatus.Pending,
+                "suspended" => AccountStatus.Rejected,
+                _           => AccountStatus.Active,
+            };
+            return _accounts.Where(a => a.Status == wanted)
+                            .OrderBy(a => a.Type).ThenBy(a => a.FullName).ToList();
+        }
+    }
+
+    List<Account> _accounts = new();
     Dictionary<string,string> _roles = new();
+
     protected override async Task OnInitializedAsync()
     {
-        if (Filter == "pending") _tab = "pending";
-        _emps = (await Data.GetAccountsAsync()).Where(a => a.Type == AccountType.Employee).ToList();
+        if (Filter is "pending" or "suspended") _tab = Filter;
+        // Every account, whatever its type or status: MEmployeeDetail holds the only controls
+        // to demote an Admin or reactivate a suspended member, and it is reached from here.
+        _accounts = await Data.GetAccountsAsync();
         _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
     }
-    string RoleNames(Account a) => a.JobRoleIds.Count == 0 ? "—"
-        : string.Join(", ", a.JobRoleIds.Select(id => _roles.GetValueOrDefault(id,"?")));
+
+    static string TypeLabel(Account a) => a.Type == AccountType.Manager ? "Admin" : "Collaborateur";
+
+    string RoleNames(Account a) => a.Type == AccountType.Manager ? "—"
+        : a.JobRoleIds.Count == 0 ? "—"
+        : string.Join(", ", a.JobRoleIds.Select(id => _roles.GetValueOrDefault(id, "?")));
+
+    static string StatusFr(Account a) => a.Status switch {
+        AccountStatus.Active => "Actif", AccountStatus.Pending => "En attente", _ => "Suspendu" };
+
+    static string StatusPill(Account a) => a.Status switch {
+        AccountStatus.Active => "ok", AccountStatus.Pending => "wait", _ => "bad" };
 }

@@ -113,10 +113,27 @@ else
             </div>
         }
     }
-    else // Rejected
+    else // Suspendu
     {
+        <div class="lab">Actions</div>
+        <p class="sub" style="margin-top:-4px">Ce compte est suspendu. La réactivation lui rend son rôle système : @SystemLabel().</p>
+
+        @if (_a.Type == AccountType.Employee && _roles.Count > 0)
+        {
+            <div class="lab" style="margin-top:14px">Rôles métier à la réactivation</div>
+            @foreach (var r in _roles)
+            {
+                <button class="card @(_selected.Contains(r.Id) ? "glow" : "")" @onclick="() => Toggle(r.Id)">
+                    <div class="t">@r.Name</div>
+                    <div class="m">@(_selected.Contains(r.Id) ? "Sélectionné ✓" : "Toucher pour choisir")</div>
+                </button>
+            }
+        }
+
+        @if (_err is not null) { <p class="pill bad" style="display:block;margin-top:10px">@_err</p> }
+
         <div class="actions" style="margin-top:18px">
-            <button class="btn primary" @onclick="Reactivate">Réactiver en Collaborateur</button>
+            <button class="btn primary" @onclick="Reactivate">Réactiver</button>
         </div>
     }
 }
@@ -148,7 +165,7 @@ else
         : string.Join(", ", _a.JobRoleIds.Select(id => _roleNames.GetValueOrDefault(id, "?")));
 
     string StatusFr() => _a!.Status switch {
-        AccountStatus.Active => "Actif", AccountStatus.Pending => "En attente", _ => "Refusé" };
+        AccountStatus.Active => "Actif", AccountStatus.Pending => "En attente", _ => "Suspendu" };
     string StatusPill() => _a!.Status switch {
         AccountStatus.Active => "pill ok", AccountStatus.Pending => "pill wait", _ => "pill bad" };
 
@@ -213,9 +230,15 @@ else
 
     async Task Reactivate()
     {
-        _a!.Status = AccountStatus.Active;
-        if (_a.Type == AccountType.Manager) _a.Type = AccountType.Employee;
-        if (_selected.Count > 0) _a.JobRoleIds = _selected.ToList();
+        // Reactivation restores the account as it was — suspending an Admin must not
+        // quietly turn them into a Collaborateur with no rôle métier.
+        if (_a!.Type == AccountType.Employee && _selected.Count == 0)
+        {
+            _err = "Choisis au moins un rôle métier pour réactiver ce Collaborateur.";
+            return;
+        }
+        _a.Status = AccountStatus.Active;
+        if (_a.Type == AccountType.Employee) _a.JobRoleIds = _selected.ToList();
         await Data.UpdateAccountAsync(_a);
         Nav.NavigateTo("m/team");
     }

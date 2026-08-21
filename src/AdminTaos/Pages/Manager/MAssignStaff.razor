@@ -17,20 +17,26 @@ else if (_event is null)
 {
     <div class="panel"><p class="sub">Event introuvable.</p></div>
 }
-else if (_eventRoles.Count == 0)
+else if (_roles.Count == 0)
 {
     <div class="panel">
-        <div class="t">Aucun rôle défini pour cet event</div>
-        <div class="m">Définis d'abord l'effectif par rôle (combien de personnes, à quel taux) dans la fiche de l'event. Sans ça, il n'y a rien sur quoi assigner.</div>
-        <NavLink class="btn primary block" style="margin-top:12px" href="@($"m/events/{Id}/edit")">Définir l'effectif</NavLink>
+        <div class="t">Aucun collaborateur assignable</div>
+        <div class="m">Aucun collaborateur actif ne porte de rôle métier. Attribue-en un depuis la fiche d'un membre de l'équipe.</div>
+        <NavLink class="btn primary block" style="margin-top:12px" href="m/team">Voir l'équipe</NavLink>
     </div>
 }
 else
 {
-    @foreach (var r in _eventRoles)
+    @foreach (var r in _roles)
     {
         var candidates = _employees.Where(e => e.JobRoleIds.Contains(r.Id)).ToList();
+        var assignedHere = _assigned.Count(a => a.JobRoleId == r.Id);
+        var target = Target(r.Id);
         <div class="lab">@r.Name</div>
+        @if (target is not null)
+        {
+            <p class="sub" style="margin-top:-4px">@assignedHere / @target assigné(s)</p>
+        }
         @if (candidates.Count == 0)
         {
             <div class="panel">
@@ -57,7 +63,7 @@ else
     [Parameter] public string Id { get; set; } = "";
     ServiceEvent? _event;
     List<Account> _employees = new();
-    List<JobRole> _eventRoles = new();
+    List<JobRole> _roles = new();
     List<Assignment> _assigned = new();
     bool _loading = true;
     string? _err;
@@ -69,13 +75,23 @@ else
         _event = await Data.GetEventAsync(Id);
         if (_event is null) { _loading = false; return; }
 
-        var roles = await Data.GetJobRolesAsync();
-        _eventRoles = roles.Where(r => _event.RoleNeeds.Any(n => n.JobRoleId == r.Id)).ToList();
+        var allRoles = await Data.GetJobRolesAsync();
         _employees = (await Data.GetAccountsAsync())
             .Where(a => a.Type == AccountType.Employee && a.Status == AccountStatus.Active).ToList();
+
+        // The effectif is a planning target, not a gate: when the event declares one we follow it,
+        // otherwise we offer every rôle métier someone active actually holds.
+        _roles = _event.RoleNeeds.Count > 0
+            ? allRoles.Where(r => _event.RoleNeeds.Any(n => n.JobRoleId == r.Id)).ToList()
+            : allRoles.Where(r => _employees.Any(e => e.JobRoleIds.Contains(r.Id))).ToList();
+
         _assigned = await Data.GetAssignmentsForEventAsync(Id);
         _loading = false;
     }
+
+    /// <summary>How many people this event wants on that role, or null when no effectif is declared.</summary>
+    int? Target(string roleId) =>
+        _event?.RoleNeeds.FirstOrDefault(n => n.JobRoleId == roleId)?.CountNeeded;
 
     async Task Assign(string accId, string roleId)
     {

@@ -1,4 +1,3 @@
-@using System.Globalization
 @page "/m/events/new"
 @page "/m/events/{Id}/edit"
 @layout DashboardLayout
@@ -21,11 +20,11 @@
 <div class="lab">Effectif par rôle</div>
 @if (_roles.Count == 0)
 {
-    <div class="panel"><div class="m">Aucun rôle métier créé. Va dans <a href="m/roles">Rôles métier</a> pour en créer avant de pouvoir assigner du personnel.</div></div>
+    <div class="panel"><div class="m">Aucun rôle métier créé. Va dans <a href="m/roles">Rôles métier</a> pour en créer.</div></div>
 }
 else
 {
-    <p class="sub" style="margin-top:-4px">Combien de personnes par rôle, et à quel taux horaire. Sans effectif défini, tu ne pourras assigner personne sur cet event.</p>
+    <p class="sub" style="margin-top:-4px">Optionnel : combien de personnes par rôle. Sert d’objectif de staffing — tu peux assigner du monde sans le renseigner.</p>
     @foreach (var r in _roles)
     {
         var need = _e.RoleNeeds.FirstOrDefault(n => n.JobRoleId == r.Id);
@@ -35,14 +34,6 @@ else
                 <Stepper Value="@(need?.CountNeeded ?? 0)" Min="0" Max="99"
                          ValueChanged="@(v => SetCount(r.Id, v))" />
             </div>
-            @if (need is not null)
-            {
-                <div class="field">
-                    <span>Taux horaire</span>
-                    <input class="rate" type="number" step="0.5" min="0" inputmode="decimal"
-                           value="@Rate(need)" @onchange="e => SetRate(r.Id, e.Value)" />
-                </div>
-            }
         </div>
     }
 }
@@ -82,21 +73,6 @@ else
         else if (v == 0) _e.RoleNeeds.Remove(n);
         else n.CountNeeded = v;
     }
-    // Rendered into <input type="number">, which only accepts an invariant separator.
-    static string Rate(RoleNeed n) => n.HourlyRate.ToString(CultureInfo.InvariantCulture);
-
-    void SetRate(string roleId, object? raw)
-    {
-        // Accept both "16.5" (the number input) and "16,5" (fr keyboards / pasted values).
-        var text = raw?.ToString()?.Trim().Replace(',', '.');
-        if (!decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var rate)
-            || rate < 0) return;
-        var n = _e.RoleNeeds.FirstOrDefault(x => x.JobRoleId == roleId)
-                ?? AddEmpty(roleId);
-        n.HourlyRate = rate;
-    }
-    RoleNeed AddEmpty(string roleId)
-    { var n = new RoleNeed { JobRoleId = roleId, CountNeeded = 1 }; _e.RoleNeeds.Add(n); return n; }
 
     async Task Save()
     {

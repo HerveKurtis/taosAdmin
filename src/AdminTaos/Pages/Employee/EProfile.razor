@@ -30,6 +30,11 @@
     </div>
 </div>
 
+@if (Auth.CurrentUser is not null)
+{
+    <ProfileInfoPanel Account="Auth.CurrentUser" OnSaved="@(() => Auth.Refresh())" />
+}
+
 <button class="btn ghost" style="margin-top:16px" @onclick="Logout">Se déconnecter</button>
 
 @code {

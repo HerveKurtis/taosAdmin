@@ -1,0 +1,56 @@
+@inject IDataService Data
+
+<div class="lab">Mes informations</div>
+<div class="panel">
+    <div class="field"><span>Téléphone</span>
+        <input class="pf-phone" type="tel" inputmode="tel" @bind="_phone" placeholder="0470 00 00 00" /></div>
+    <div class="field"><span>Adresse postale</span>
+        <input class="pf-address" @bind="_address" placeholder="Rue, numéro, code postal, ville" /></div>
+    <div class="field"><span>IBAN</span>
+        <input class="pf-iban" @bind="_iban" placeholder="BE68 5390 0754 7034" /></div>
+
+    @if (_err is not null) { <p class="pill bad" style="display:block;margin-top:10px">@_err</p> }
+    else if (_saved) { <p class="pill ok" style="display:block;margin-top:10px">Informations enregistrées</p> }
+
+    <button class="btn primary block pf-save" style="margin-top:12px" @onclick="Save">Enregistrer</button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Account Account { get; set; } = default!;
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    string? _phone, _address, _iban, _err;
+    bool _saved;
+
+    protected override void OnInitialized()
+    {
+        _phone = Account.Phone;
+        _address = Account.PostalAddress;
+        _iban = Account.Iban;
+    }
+
+    async Task Save()
+    {
+        _err = null; _saved = false;
+
+        // Rien n'est écrit tant que l'IBAN est refusé : une sauvegarde partielle laisserait
+        // l'utilisateur croire que tout est passé.
+        var iban = IbanFormat.Normalize(_iban);
+        if (!IbanFormat.IsAcceptable(iban))
+        {
+            _err = "IBAN invalide. Format attendu : deux lettres, deux chiffres, puis le numéro de compte.";
+            return;
+        }
+
+        Account.Phone = Blank(_phone);
+        Account.PostalAddress = Blank(_address);
+        Account.Iban = iban;
+        await Data.UpdateAccountAsync(Account);
+
+        _iban = iban;
+        _saved = true;
+        await OnSaved.InvokeAsync();
+    }
+
+    static string? Blank(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+}

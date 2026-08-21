@@ -49,19 +49,33 @@ else
 
     @foreach (var group in _team.GroupBy(m => m.RoleId))
     {
-        <div class="lab">@RoleName(group.Key)</div>
+        <div class="lab">@RoleName(group.Key)@TargetSuffix(group.Key, group.Count())</div>
         @foreach (var m in group)
         {
             <div class="panel team-member" data-account-id="@m.Account.Id">
-                <div class="t">@m.Account.FullName</div>
-                @if (string.IsNullOrWhiteSpace(m.Account.Phone))
-                {
-                    <div class="m">Téléphone non renseigné</div>
-                }
-                else
-                {
-                    <div class="m"><a class="team-phone" href="@TelHref(m.Account.Phone)">@m.Account.Phone</a></div>
-                }
+                <div style="display:flex;align-items:center;gap:14px">
+                    @if (!string.IsNullOrWhiteSpace(m.Account.PhotoUrl))
+                    {
+                        <img class="team-avatar" src="@m.Account.PhotoUrl" alt="@m.Account.FullName"
+                             style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" />
+                    }
+                    else
+                    {
+                        <div class="team-initials"
+                             style="width:48px;height:48px;border-radius:50%;background:var(--goldbg);color:var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--pf);font-weight:700">@Initials(m.Account.FullName)</div>
+                    }
+                    <div style="flex:1">
+                        <div class="t">@m.Account.FullName</div>
+                        @if (string.IsNullOrWhiteSpace(m.Account.Phone))
+                        {
+                            <div class="m">Téléphone non renseigné</div>
+                        }
+                        else
+                        {
+                            <div class="m"><a class="team-phone" href="@TelHref(m.Account.Phone)">@m.Account.Phone</a></div>
+                        }
+                    </div>
+                </div>
                 <div class="row2" style="margin-top:10px">
                     <button class="btn @(m.Asg.Presence == PresenceStatus.Present ? "primary" : "ghost") presence-present"
                             @onclick="() => SetPresence(m.Asg, PresenceStatus.Present)">Présent</button>
@@ -109,6 +123,17 @@ else
     }
 
     string RoleName(string id) => _roleNames.GetValueOrDefault(id, "Rôle inconnu");
+
+    /// <summary>« · 3 / 4 » quand l'event déclare un effectif pour ce rôle, rien sinon.</summary>
+    string TargetSuffix(string roleId, int assigned)
+    {
+        var need = _e?.RoleNeeds.FirstOrDefault(n => n.JobRoleId == roleId);
+        return need is null ? "" : $" · {assigned} / {need.CountNeeded}";
+    }
+
+    static string Initials(string fullName)
+        => string.Concat(fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2).Select(p => char.ToUpperInvariant(p[0])));
 
     int Present  => _team.Count(m => m.Asg.Presence == PresenceStatus.Present);
     int Absent   => _team.Count(m => m.Asg.Presence == PresenceStatus.Absent);

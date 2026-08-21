@@ -192,6 +192,46 @@ public class EventTeamTests : BunitContext
         Assert.Contains("m/events/evt-gala/equipe", cut.Markup);
     }
 
+    [Fact]
+    public async Task Each_member_shows_a_photo_or_their_initials()
+    {
+        var db = await Setup(SeedData.EmpActiveServer);
+        var sarah = (await db.GetAccountAsync(SeedData.EmpActiveHost))!;
+        sarah.PhotoUrl = "https://example.test/sarah.jpg";
+        await db.UpdateAccountAsync(sarah);
+
+        var cut = Page();
+
+        var photo = cut.Find($".team-member[data-account-id='{SeedData.EmpActiveHost}'] img.team-avatar");
+        Assert.Equal("https://example.test/sarah.jpg", photo.GetAttribute("src"));
+
+        var initials = cut.Find($".team-member[data-account-id='{SeedData.EmpActiveServer}'] .team-initials");
+        Assert.Equal("MD", initials.TextContent.Trim());
+    }
+
+    [Fact]
+    public async Task The_role_group_states_the_expected_headcount()
+    {
+        await Setup(SeedData.EmpActiveServer);
+        var cut = Page();
+
+        // Le gala demande 4 Serveurs et 2 Hôtesses ; un de chaque est confirmé.
+        Assert.Contains("Serveur · 1 / 4", cut.Markup);
+        Assert.Contains("Hôtesse · 1 / 2", cut.Markup);
+    }
+
+    [Fact]
+    public async Task A_role_without_a_declared_headcount_shows_no_target()
+    {
+        var db = await Setup(SeedData.EmpActiveServer);
+        var e = (await db.GetEventAsync("evt-gala"))!;
+        e.RoleNeeds.Clear();
+        await db.UpdateEventAsync(e);
+
+        var cut = Page();
+        Assert.DoesNotContain(cut.FindAll(".lab"), l => l.TextContent.Contains(" / "));
+    }
+
     /// <summary>Lit normalement, refuse toute écriture d'assignation — tient lieu de refus des règles Firestore.</summary>
     sealed class RefusingDataService : InMemoryDataService, IDataService
     {

@@ -127,4 +127,39 @@ public class ResponsableTests : BunitContext
         var cut = Render<AdminTaos.Pages.Manager.MEventEdit>(p => p.Add(x => x.Id, "evt-gala"));
         Assert.DoesNotContain("Contact sur place", cut.Markup);
     }
+
+    [Fact]
+    public void MEventDetail_shows_the_presence_tally()
+    {
+        Db();
+        var cut = Render<AdminTaos.Pages.Manager.MEventDetail>(p => p.Add(x => x.Id, "evt-gala"));
+
+        // Le gala compte une assignation confirmée (Marc), personne n'est encore pointé.
+        Assert.Contains("0 présent · 0 absent · 1 attendu", cut.Find(".presence-tally").TextContent);
+    }
+
+    [Fact]
+    public async Task MEventDetail_tally_follows_the_pointing()
+    {
+        var db = Db();
+        var marc = (await db.GetAssignmentsForEventAsync("evt-gala"))
+            .Single(a => a.AccountId == SeedData.EmpActiveServer);
+        marc.Presence = PresenceStatus.Present;
+        await db.UpdateAssignmentAsync(marc);
+
+        var cut = Render<AdminTaos.Pages.Manager.MEventDetail>(p => p.Add(x => x.Id, "evt-gala"));
+
+        Assert.Contains("1 présent · 0 absent · 0 attendu", cut.Find(".presence-tally").TextContent);
+    }
+
+    [Fact]
+    public async Task MEventDetail_hides_the_tally_when_nobody_is_assigned()
+    {
+        var db = Db();
+        var e = await db.CreateEventAsync(new ServiceEvent { Name = "Vide" });
+
+        var cut = Render<AdminTaos.Pages.Manager.MEventDetail>(p => p.Add(x => x.Id, e.Id));
+
+        Assert.Empty(cut.FindAll(".presence-tally"));
+    }
 }

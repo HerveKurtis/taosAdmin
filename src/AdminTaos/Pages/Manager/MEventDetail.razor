@@ -46,6 +46,14 @@ else
         </div>
     }
 
+    @if (_confirmed.Count > 0)
+    {
+        <div class="lab">Présences</div>
+        <div class="panel">
+            <div class="m presence-tally">@PresentCount présent@(PresentCount > 1 ? "s" : "") · @AbsentCount absent@(AbsentCount > 1 ? "s" : "") · @ExpectedCount attendu@(ExpectedCount > 1 ? "s" : "")</div>
+        </div>
+    }
+
     <div class="lab">Personnel assigné</div>
     @if (_confirmed.Count == 0)
     {
@@ -105,6 +113,10 @@ else
         _confirmed = asgs.Where(a => a.Status == AssignmentStatus.Confirmed).ToList();
         _requests  = asgs.Where(a => a.Status == AssignmentStatus.PendingApproval).ToList();
     }
+
+    int PresentCount  => _confirmed.Count(a => a.Presence == PresenceStatus.Present);
+    int AbsentCount   => _confirmed.Count(a => a.Presence == PresenceStatus.Absent);
+    int ExpectedCount => _confirmed.Count(a => a.Presence == PresenceStatus.Expected);
 
     string Name(string id) => _names.GetValueOrDefault(id, "?");
     string RoleName(string id) => _roles.GetValueOrDefault(id, "?");

@@ -7,38 +7,50 @@
 
 <div class="stacked">
     <span class="lbl">Email</span>
-    <input @bind="_email" placeholder="ton.email@exemple.com" type="email" autocomplete="username" />
+    <input @bind="_email" placeholder="ton.email@exemple.com" type="email" autocomplete="username" disabled="@_busy" />
 </div>
 <div class="stacked">
     <span class="lbl">Mot de passe</span>
-    <input @bind="_password" type="password" placeholder="••••••••" autocomplete="current-password" />
+    <input @bind="_password" type="password" placeholder="••••••••" autocomplete="current-password" disabled="@_busy" />
 </div>
 
 @if (_error) { <p class="pill bad" style="display:block;text-align:center;margin-top:8px">@_errorMessage</p> }
 
-<button class="btn primary block" @onclick="DoLogin">Se connecter</button>
-<a class="btn ghost block" href="register">Créer un compte</a>
+<button class="btn primary block" @onclick="DoLogin" disabled="@_busy" aria-busy="@_busy">
+    @if (_busy) { <span class="btn-spinner" aria-hidden="true"></span> }
+    @(_busy ? "Connexion…" : "Se connecter")
+</button>
+<a class="btn ghost block @(_busy ? "is-disabled" : "")" href="register">Créer un compte</a>
 
 @code {
     string _email = "", _password = "";
-    bool _error;
+    bool _error, _busy;
     string _errorMessage = "Identifiants invalides";
 
     async Task DoLogin()
     {
+        // L'aller-retour Firebase peut durer plusieurs secondes en 4G : sans garde, un bouton
+        // qui ne réagit pas invite à cliquer en boucle et à lancer autant de connexions.
+        if (_busy) return;
+
         _error = false;
         if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
         { _error = true; _errorMessage = "Email et mot de passe requis"; return; }
 
-        var ok = await Auth.LoginAsync(_email, _password);
-        if (!ok) { _error = true; _errorMessage = "Identifiants invalides"; return; }
-
-        var u = Auth.CurrentUser!;
-        Nav.NavigateTo(u.Status switch
+        _busy = true;
+        try
         {
-            AccountStatus.Pending  => "pending",
-            AccountStatus.Rejected => "login",
-            _ => u.Type == AccountType.Manager ? "m" : "e"
-        }, replace: true);
+            var ok = await Auth.LoginAsync(_email, _password);
+            if (!ok) { _error = true; _errorMessage = "Identifiants invalides"; return; }
+
+            var u = Auth.CurrentUser!;
+            Nav.NavigateTo(u.Status switch
+            {
+                AccountStatus.Pending  => "pending",
+                AccountStatus.Rejected => "login",
+                _ => u.Type == AccountType.Manager ? "m" : "e"
+            }, replace: true);
+        }
+        finally { _busy = false; }
     }
 }

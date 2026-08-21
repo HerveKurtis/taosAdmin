@@ -10,9 +10,25 @@
     <div class="panel" style="text-align:center;max-width:480px;margin:0 auto">
         <div class="t">@_e.Name</div>
         <div class="m">@_e.Venue · @RoleName</div>
-        <Chrono Since="_ts.StartedAt!.Value" />
-        <div class="live">● EN COURS — DÉBUT @_ts.StartedAt.Fmt()</div>
-        <button class="btn primary block" @onclick="Finish">Terminer mon shift</button>
+        @if (_ts.IsOnBreak)
+        {
+            <Chrono Since="_ts.OpenBreak!.StartedAt" />
+            <div class="live paused">● EN PAUSE — DEPUIS @_ts.OpenBreak.StartedAt.Fmt()</div>
+            <div class="m shift-meta">Temps presté @WorkedSoFar().Fmt() · pause cumulée @_ts.RecordedBreak.FmtShort()</div>
+            <button class="btn primary block shift-resume" @onclick="ResumeShift">Reprendre le service</button>
+            <button class="btn ghost block shift-finish" @onclick="Finish">Terminer mon shift</button>
+        }
+        else
+        {
+            <Chrono Since="_ts.StartedAt!.Value" Deduct="_ts.RecordedBreak" />
+            <div class="live">● EN SERVICE — DÉBUT @_ts.StartedAt.Fmt()</div>
+            @if (_ts.RecordedBreak > TimeSpan.Zero)
+            {
+                <div class="m shift-meta">Pause cumulée : @_ts.RecordedBreak.FmtShort()</div>
+            }
+            <button class="btn ghost block shift-break" @onclick="StartBreak">Prendre une pause</button>
+            <button class="btn primary block shift-finish" @onclick="Finish">Terminer mon shift</button>
+        }
     </div>
 }
 
@@ -35,9 +51,34 @@
         }
     }
 
+    /// <summary>Temps presté à cet instant. Pendant une pause il est figé à l'entrée en pause.</summary>
+    TimeSpan WorkedSoFar()
+    {
+        var until = _ts!.OpenBreak?.StartedAt ?? DateTime.Now;
+        var worked = until - _ts.StartedAt!.Value - _ts.RecordedBreak;
+        return worked < TimeSpan.Zero ? TimeSpan.Zero : worked;
+    }
+
+    async Task StartBreak()
+    {
+        if (_ts!.IsOnBreak) return;
+        _ts.Breaks.Add(new ShiftBreak { StartedAt = DateTime.Now });
+        await Data.UpdateTimesheetAsync(_ts);
+    }
+
+    async Task ResumeShift()
+    {
+        if (_ts!.OpenBreak is not { } open) return;
+        open.EndedAt = DateTime.Now;
+        await Data.UpdateTimesheetAsync(_ts);
+    }
+
     async Task Finish()
     {
-        _ts!.EndedAt = DateTime.Now;
+        var end = DateTime.Now;
+        // Terminer pendant une pause la referme à l'heure de fin : personne ne reste en pause.
+        if (_ts!.OpenBreak is { } open) open.EndedAt = end;
+        _ts.EndedAt = end;
         _ts.Status = TimesheetStatus.ToSend;
         await Data.UpdateTimesheetAsync(_ts);
         Nav.NavigateTo($"e/events/{Id}/recap");

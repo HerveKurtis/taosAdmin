@@ -27,6 +27,28 @@ else
         <div class="field"><span>Statut</span><b><span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span></b></div>
     </div>
 
+    <div class="lab">Pauses</div>
+    <div class="panel">
+        @if (_ts.Breaks.Count == 0)
+        {
+            <div class="m">Aucune pause pointée.</div>
+        }
+        else
+        {
+            @foreach (var b in _ts.Breaks)
+            {
+                <div class="field ts-break">
+                    <span>@b.StartedAt.Fmt() → @b.EndedAt.Fmt()</span>
+                    <b>@(b.Duration is { } d ? d.FmtShort() : "en cours")</b>
+                </div>
+            }
+            <div class="field"><span>Total pointé</span><b>@_ts.RecordedBreak.FmtShort()</b></div>
+        }
+        <div class="field"><span>Pause retenue (min)</span>
+            <input class="ts-break-minutes" type="number" min="0" step="5"
+                   value="@_breakMinutes" @onchange="OnBreakMinutes" /></div>
+    </div>
+
     @if (_ts.Status is TimesheetStatus.Sent or TimesheetStatus.Validated or TimesheetStatus.Rejected)
     {
         <div class="lab">Refuser — motif</div>
@@ -47,6 +69,7 @@ else
     string _who = "", _role = "", _eventName = "", _reason = "";
     DateOnly _eventDate;
     DateTime _start, _end;
+    int _breakMinutes;
     bool _saved;
 
     protected override async Task OnInitializedAsync()
@@ -65,18 +88,30 @@ else
         _start = _ts.EffectiveStart ?? DateTime.Today;
         _end   = _ts.EffectiveEnd ?? DateTime.Today;
         _reason = _ts.RejectionReason ?? "";
+        _breakMinutes = (int)Math.Round(_ts.EffectiveBreak.TotalMinutes);
     }
 
     void OnStart(ChangeEventArgs e)
     { if (TimeOnly.TryParse(e.Value?.ToString(), out var t)) _start = _start.Date + t.ToTimeSpan(); }
     void OnEnd(ChangeEventArgs e)
     { if (TimeOnly.TryParse(e.Value?.ToString(), out var t)) _end = _end.Date + t.ToTimeSpan(); }
-    string Dur() => (_end > _start ? (TimeSpan?)(_end - _start) : null).Fmt();
+    void OnBreakMinutes(ChangeEventArgs e)
+    { if (int.TryParse(e.Value?.ToString(), out var m) && m >= 0) _breakMinutes = m; }
+
+    /// <summary>Durée nette : l'amplitude corrigée moins la pause retenue, jamais négative.</summary>
+    string Dur()
+    {
+        if (_end <= _start) return ((TimeSpan?)null).Fmt();
+        var gross = _end - _start;
+        var pause = TimeSpan.FromMinutes(_breakMinutes);
+        return (gross > pause ? gross - pause : TimeSpan.Zero).Fmt();
+    }
 
     async Task Validate()
     {
         _ts!.ManagerAdjustedStart = _start;
         _ts.ManagerAdjustedEnd = _end;
+        _ts.ManagerAdjustedBreakMinutes = _breakMinutes;
         _ts.Status = TimesheetStatus.Validated;
         _ts.ValidatedAt = DateTime.Now;
         _ts.RejectionReason = null;

@@ -11,8 +11,13 @@
         <div class="lab" style="margin-top:0">Récapitulatif</div>
         <p style="font-size:15px;line-height:1.9;color:var(--txt)">
             <b>Event @_e.Name</b> · @_e.Date.Fmt() · Rôle @RoleName<br/>
-            Tu as travaillé de <b>@_ts.StartedAt.Fmt()</b> à <b>@_ts.EndedAt.Fmt()</b>,
-            soit <b style="color:var(--gold)">@_ts.Duration.Fmt()</b> au total.
+            Service de <b>@_ts.StartedAt.Fmt()</b> à <b>@_ts.EndedAt.Fmt()</b>,
+            soit <b>@_ts.GrossDuration.Fmt()</b> d'amplitude.<br/>
+            @if (_ts.EffectiveBreak > TimeSpan.Zero)
+            {
+                <text>Pause : <b>@_ts.EffectiveBreak.FmtShort()</b> (@BreakLabel())<br/></text>
+            }
+            Temps presté : <b style="color:var(--gold)">@_ts.Duration.Fmt()</b>
         </p>
         <div style="margin:14px 0">
             <span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span>
@@ -48,6 +53,8 @@
                 .FirstOrDefault(r => r.Id == asg.JobRoleId)?.Name ?? "";
         }
     }
+
+    string BreakLabel() => _ts!.Breaks.Count <= 1 ? "1 pause" : $"{_ts.Breaks.Count} pauses";
 
     async Task Send()
     {

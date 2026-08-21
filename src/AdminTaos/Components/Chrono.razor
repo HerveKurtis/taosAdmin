@@ -3,6 +3,8 @@
 
 @code {
     [Parameter, EditorRequired] public DateTime Since { get; set; }
+    /// <summary>Temps à retrancher de l'écoulé — les pauses déjà prises.</summary>
+    [Parameter] public TimeSpan Deduct { get; set; }
     System.Threading.Timer? _t;
     string Display = "00:00:00";
 
@@ -14,7 +16,7 @@
     }
     void Tick()
     {
-        var e = DateTime.Now - Since;
+        var e = DateTime.Now - Since - Deduct;
         if (e < TimeSpan.Zero) e = TimeSpan.Zero;
         Display = $"{(int)e.TotalHours:00}:{e.Minutes:00}:{e.Seconds:00}";
     }

@@ -22,6 +22,9 @@ else
             <div class="field"><span>Rôles métier</span><b>@JobRoleNames()</b></div>
         }
         <div class="field"><span>Statut</span><b><span class="@StatusPill()">@StatusFr()</span></b></div>
+        <div class="field"><span>Téléphone</span><b>@(_a.Phone ?? "—")</b></div>
+        <div class="field"><span>Adresse</span><b>@(_a.PostalAddress ?? "—")</b></div>
+        <div class="field"><span>IBAN</span><b>@(_a.Iban ?? "—")</b></div>
     </div>
 
     @if (_a.Status == AccountStatus.Pending)

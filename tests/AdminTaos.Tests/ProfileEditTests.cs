@@ -108,4 +108,33 @@ public class ProfileEditTests : BunitContext
         Assert.Equal("0470 11 22 33", cut.Find("input.pf-phone").GetAttribute("value"));
         Assert.Equal("BE68539007547034", cut.Find("input.pf-iban").GetAttribute("value"));
     }
+
+    [Fact]
+    public async Task Admin_sees_the_contact_details_of_a_collaborateur()
+    {
+        var db = await SignIn(Admin());
+        var target = Collaborateur();
+        target.Phone = "0470 12 34 56";
+        target.PostalAddress = "Rue des Bouchers 12, 1000 Bruxelles";
+        target.Iban = "BE68539007547034";
+        await db.CreateAccountAsync(target);
+
+        var cut = Render<AdminTaos.Pages.Manager.MEmployeeDetail>(p => p.Add(x => x.Id, target.Id));
+
+        Assert.Contains("0470 12 34 56", cut.Markup);
+        Assert.Contains("Rue des Bouchers 12", cut.Markup);
+        Assert.Contains("BE68539007547034", cut.Markup);
+    }
+
+    [Fact]
+    public async Task Missing_contact_details_show_a_dash_not_an_empty_row()
+    {
+        var db = await SignIn(Admin());
+        var target = Collaborateur();
+        await db.CreateAccountAsync(target);
+
+        var cut = Render<AdminTaos.Pages.Manager.MEmployeeDetail>(p => p.Add(x => x.Id, target.Id));
+        var row = cut.FindAll(".field").Single(f => f.TextContent.Contains("IBAN"));
+        Assert.Contains("\u2014", row.TextContent);
+    }
 }

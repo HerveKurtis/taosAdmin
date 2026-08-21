@@ -62,6 +62,9 @@ public class InMemoryDataService : IDataService
         return Task.CompletedTask;
     }
 
+    public Task DeleteAssignmentAsync(string id)
+    { _assignments.RemoveAll(a => a.Id == id); return Task.CompletedTask; }
+
     public Task<List<Timesheet>> GetTimesheetsAsync() => Done(_timesheets.ToList());
     public Task<Timesheet?> GetTimesheetAsync(string id) => Done(_timesheets.FirstOrDefault(t => t.Id == id));
     public Task<Timesheet?> GetTimesheetForAssignmentAsync(string assignmentId) =>

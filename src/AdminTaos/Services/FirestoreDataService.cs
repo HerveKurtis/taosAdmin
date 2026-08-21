@@ -75,6 +75,7 @@ public class FirestoreDataService : IDataService
         => QueryByFieldAsync<Assignment>("assignments", "accountId", accountId);
     public async Task<Assignment> CreateAssignmentAsync(Assignment a){ await SetAsync("assignments", a.Id, a); return a; }
     public Task                  UpdateAssignmentAsync(Assignment a) => SetAsync("assignments", a.Id, a);
+    public Task                  DeleteAssignmentAsync(string id)  => DeleteAsync("assignments", id);
 
     // ---------- Timesheets ----------
     public Task<List<Timesheet>> GetTimesheetsAsync()                => GetAllAsync<Timesheet>("timesheets");

@@ -61,10 +61,28 @@ else
     }
     else
     {
+        @if (_removeErr is not null) { <p class="pill bad" style="display:block;margin:12px 0">@_removeErr</p> }
         <div class="panel">
         @foreach (var a in _confirmed)
         {
-            <div class="field"><span>@Name(a.AccountId)</span><b>@RoleName(a.JobRoleId)</b></div>
+            <div class="field">
+                <span>@Name(a.AccountId)</span>
+                <b style="display:flex;align-items:center;gap:10px">
+                    @RoleName(a.JobRoleId)
+                    <button class="btn ghost asg-remove" style="padding:4px 10px;font-size:12px"
+                            @onclick="() => AskRemove(a)">Retirer</button>
+                </b>
+            </div>
+            @if (_removing?.Id == a.Id)
+            {
+                <div class="panel" style="margin:10px 0">
+                    <div class="m">Retirer @Name(a.AccountId) de cet event ? L'assignation sera supprimée.</div>
+                    <div class="row2" style="margin-top:12px">
+                        <button class="btn ghost asg-remove-cancel" @onclick="() => _removing = null">Annuler</button>
+                        <button class="btn danger asg-remove-confirm" @onclick="ConfirmRemove">Retirer</button>
+                    </div>
+                </div>
+            }
         }
         </div>
     }
@@ -98,6 +116,8 @@ else
     List<Assignment> _confirmed = new(), _requests = new();
     Dictionary<string,string> _names = new(), _roles = new();
     Account? _responsable;
+    Assignment? _removing;
+    string? _removeErr;
 
     protected override async Task OnInitializedAsync() => await Load();
 
@@ -120,6 +140,27 @@ else
 
     string Name(string id) => _names.GetValueOrDefault(id, "?");
     string RoleName(string id) => _roles.GetValueOrDefault(id, "?");
+
+    void AskRemove(Assignment a) { _removeErr = null; _removing = a; }
+
+    async Task ConfirmRemove()
+    {
+        if (_removing is not { } a) return;
+
+        // Supprimer une assignation orphelinerait la feuille d'heures qui la référence :
+        // une fois le service démarré, on corrige les heures, on ne fait pas disparaître la personne.
+        var ts = await Data.GetTimesheetForAssignmentAsync(a.Id);
+        if (ts?.StartedAt is not null)
+        {
+            _removeErr = $"{Name(a.AccountId)} a déjà démarré son service : ses heures seraient perdues. Corrige plutôt sa timesheet.";
+            _removing = null;
+            return;
+        }
+
+        await Data.DeleteAssignmentAsync(a.Id);
+        _removing = null;
+        await Load();
+    }
 
     async Task Decide(Assignment a, bool accept)
     {

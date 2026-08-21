@@ -29,6 +29,7 @@ public interface IDataService
     Task<List<Assignment>> GetAssignmentsForAccountAsync(string accountId);
     Task<Assignment> CreateAssignmentAsync(Assignment a);
     Task UpdateAssignmentAsync(Assignment a);
+    Task DeleteAssignmentAsync(string id);
 
     // Timesheets
     Task<List<Timesheet>> GetTimesheetsAsync();

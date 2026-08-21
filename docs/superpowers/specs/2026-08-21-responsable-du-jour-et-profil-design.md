@@ -1,7 +1,7 @@
 # Responsable du jour & profil enrichi — design
 
 Date : 2026-08-21
-Statut : validé pour implémentation, sauf un point ouvert (§B.6)
+Statut : validé pour implémentation
 
 ## Contexte
 
@@ -172,7 +172,7 @@ présences, et un bouton vers la même page.
 `MEventDetail` affiche le responsable désigné à la place de « Contact » quand il
 existe, et ajoute une ligne de décompte des présences sous l'effectif par rôle.
 
-### B.6 Règles Firestore — un point ouvert et une extension
+### B.6 Règles Firestore
 
 **Écriture — décidé.** Le responsable doit pouvoir écrire dans l'`Assignment`
 d'un autre collaborateur, mais uniquement le champ `presence` :
@@ -196,21 +196,24 @@ Subtilité à ne pas manquer à l'implémentation : `FirestoreDataService` écri
 compare les valeurs et ne retient que celles qui changent réellement, donc un
 `setDoc` réécrivant les autres champs à l'identique satisfait `hasOnly`.
 
-**Lecture — à trancher.** Aujourd'hui un Collaborateur ne lit que ses propres
-assignments. Le responsable doit lire ceux de toute son équipe. Deux voies :
+**Lecture — décidé.** Aujourd'hui un Collaborateur ne lit que ses propres
+assignments ; le responsable doit lire ceux de toute son équipe. La lecture
+s'ouvre à tout compte actif, exactement comme `events` le fait déjà, et
+l'interface filtre ce qu'elle montre :
 
-1. *Recommandé* — aligner `assignments` sur ce que fait déjà `events` :
-   lecture ouverte à tout compte actif, l'interface filtrant ce qu'elle montre.
-   Le commentaire « v1 simplification » existe déjà sur `events` pour cette
-   raison exacte. Simple, sans coût.
-2. Rule conditionnelle appelant `isResponsableOf` à la lecture. Plus étroit,
-   mais chaque document évalué déclenche un `get()`, et Firestore plafonne à
-   20 `get()` par requête. Un event à plus d'une dizaine d'assignments ferait
-   échouer la requête entière. Écarté pour cette raison.
+```
+allow read: if isActive();
+```
 
-La voie 1 signifie qu'un collaborateur curieux pourrait lire la liste complète
-des assignations de tous les events. **Ce point demande une validation
-explicite avant implémentation.**
+Le commentaire « v1 simplification » présent sur `events` s'applique mot pour
+mot et sera repris ici. Conséquence acceptée : un collaborateur passant par la
+console pourrait lire l'ensemble des affectations — les heures et les données
+personnelles restent hors de portée.
+
+L'alternative d'une règle conditionnelle appelant `isResponsableOf` à la lecture
+a été écartée pour une raison technique et non de préférence : chaque document
+évalué déclenche un `get()`, et Firestore plafonne à 20 `get()` par requête. Un
+event de plus d'une dizaine de personnes ferait échouer la requête entière.
 
 ### B.7 Tests
 

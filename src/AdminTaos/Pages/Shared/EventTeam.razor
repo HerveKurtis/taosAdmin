@@ -41,7 +41,11 @@ else
     }
 
     <div class="lab">Effectif</div>
-    <div class="panel"><div class="m">@_team.Count personne(s) confirmée(s)</div></div>
+    <div class="panel">
+        <div class="m presence-count">@Present présent@(Present > 1 ? "s" : "") · @Absent absent@(Absent > 1 ? "s" : "") · @Expected attendu@(Expected > 1 ? "s" : "")</div>
+    </div>
+
+    @if (_err is not null) { <p class="pill bad" style="display:block;margin:12px 0">@_err</p> }
 
     @foreach (var group in _team.GroupBy(m => m.RoleId))
     {
@@ -58,6 +62,12 @@ else
                 {
                     <div class="m"><a class="team-phone" href="@TelHref(m.Account.Phone)">@m.Account.Phone</a></div>
                 }
+                <div class="row2" style="margin-top:10px">
+                    <button class="btn @(m.Asg.Presence == PresenceStatus.Present ? "primary" : "ghost") presence-present"
+                            @onclick="() => SetPresence(m.Asg, PresenceStatus.Present)">Présent</button>
+                    <button class="btn @(m.Asg.Presence == PresenceStatus.Absent ? "danger" : "ghost") presence-absent"
+                            @onclick="() => SetPresence(m.Asg, PresenceStatus.Absent)">Absent</button>
+                </div>
             </div>
         }
     }
@@ -72,6 +82,7 @@ else
     List<Member> _team = new();
     Dictionary<string,string> _roleNames = new();
     bool _allowed, _loading = true;
+    string? _err;
 
     protected override async Task OnInitializedAsync() => await Load();
 
@@ -98,6 +109,27 @@ else
     }
 
     string RoleName(string id) => _roleNames.GetValueOrDefault(id, "Rôle inconnu");
+
+    int Present  => _team.Count(m => m.Asg.Presence == PresenceStatus.Present);
+    int Absent   => _team.Count(m => m.Asg.Presence == PresenceStatus.Absent);
+    int Expected => _team.Count(m => m.Asg.Presence == PresenceStatus.Expected);
+
+    async Task SetPresence(Assignment a, PresenceStatus status)
+    {
+        _err = null;
+        var previous = a.Presence;
+        try
+        {
+            a.Presence = status;
+            await Data.UpdateAssignmentAsync(a);
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            a.Presence = previous;   // l'écran ne doit pas montrer un pointage qui n'a pas été écrit
+            _err = $"Échec du pointage : {ex.Message}";
+        }
+    }
 
     /// <summary>Un lien tel: ne tolère pas les espaces de mise en forme du numéro.</summary>
     static string TelHref(string phone)

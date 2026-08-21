@@ -102,4 +102,83 @@ public class EventTeamTests : BunitContext
 
         Assert.Equal(2, Page().FindAll(".team-member").Count);
     }
+
+    [Fact]
+    public async Task Everyone_starts_as_expected()
+    {
+        await Setup(SeedData.EmpActiveServer);
+        var cut = Page();
+        Assert.Contains("0 présent · 0 absent · 2 attendus", cut.Find(".presence-count").TextContent);
+    }
+
+    [Fact]
+    public async Task Marking_someone_present_persists_and_updates_the_count()
+    {
+        var db = await Setup(SeedData.EmpActiveServer);
+        var cut = Page();
+
+        cut.Find($".team-member[data-account-id='{SeedData.EmpActiveHost}'] button.presence-present").Click();
+
+        var asg = (await db.GetAssignmentsForEventAsync("evt-gala"))
+            .Single(a => a.AccountId == SeedData.EmpActiveHost);
+        Assert.Equal(PresenceStatus.Present, asg.Presence);
+        Assert.Contains("1 présent · 0 absent · 1 attendu", cut.Find(".presence-count").TextContent);
+    }
+
+    [Fact]
+    public async Task Marking_someone_absent_then_present_again_switches_cleanly()
+    {
+        var db = await Setup(SeedData.EmpActiveServer);
+        var cut = Page();
+        var row = $".team-member[data-account-id='{SeedData.EmpActiveHost}']";
+
+        cut.Find($"{row} button.presence-absent").Click();
+        Assert.Equal(PresenceStatus.Absent, (await db.GetAssignmentsForEventAsync("evt-gala"))
+            .Single(a => a.AccountId == SeedData.EmpActiveHost).Presence);
+
+        cut.Find($"{row} button.presence-present").Click();
+        Assert.Equal(PresenceStatus.Present, (await db.GetAssignmentsForEventAsync("evt-gala"))
+            .Single(a => a.AccountId == SeedData.EmpActiveHost).Presence);
+    }
+
+    [Fact]
+    public async Task A_refused_write_is_shown_instead_of_failing_silently()
+    {
+        // Un seul service pour l'authentification ET la page, sinon les deux voient des données
+        // différentes. RefusingDataService reconstruit le seed puis désigne le responsable.
+        var db = new RefusingDataService();
+
+        var me = (await db.GetAccountAsync(SeedData.EmpActiveServer))!;
+        var fake = new FakeAuthClient();
+        fake.PreRegister(me.Id, me.Email, "pwd");
+        var auth = new AuthState(fake, db);
+        await auth.LoginAsync(me.Email, "pwd");
+
+        Services.AddSingleton<IDataService>(db);
+        Services.AddSingleton(auth);
+
+        var cut = Page();
+        cut.FindAll("button.presence-present").First().Click();
+
+        Assert.Contains("Échec du pointage", cut.Markup);
+    }
+
+    /// <summary>Lit normalement, refuse toute écriture d'assignation — tient lieu de refus des règles Firestore.</summary>
+    sealed class RefusingDataService : InMemoryDataService, IDataService
+    {
+        public RefusingDataService()
+        {
+            // InMemoryDataService est synchrone sous le capot : ces Task sont déjà complétées.
+            var e = GetEventAsync("evt-gala").Result!;
+            e.ResponsableAccountId = SeedData.EmpActiveServer;
+            UpdateEventAsync(e).Wait();
+
+            CreateAssignmentAsync(new Assignment {
+                Id = "asg-gala-host", EventId = "evt-gala", AccountId = SeedData.EmpActiveHost,
+                JobRoleId = SeedData.RoleHost, Status = AssignmentStatus.Confirmed }).Wait();
+        }
+
+        Task IDataService.UpdateAssignmentAsync(Assignment a)
+            => throw new InvalidOperationException("Missing or insufficient permissions.");
+    }
 }

@@ -15,7 +15,10 @@
 else
 {
     <div class="panel">
-        <div class="t">@_next.Value.ev.Name</div>
+        <div class="t" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            @_next.Value.ev.Name
+            <span class="@_next.Value.ev.Status.PillClass()">@_next.Value.ev.Status.StatusFr()</span>
+        </div>
         <div class="m">@_next.Value.ev.Venue · @_next.Value.ev.Date.Fmt() · RDV @_next.Value.ev.MeetingTime.Fmt()</div>
         <div style="margin-top:16px">
         @if (_ts is { Status: TimesheetStatus.InProgress })
@@ -55,7 +58,12 @@ else
         var joined = asgs
             .Select(a => (ev: events.FirstOrDefault(e => e.Id == a.EventId), asg: a))
             .Where(x => x.ev is not null && x.ev!.Status != EventStatus.Past)
-            .OrderBy(x => x.ev!.Date).ToList();
+            // Ce qui se déroule maintenant passe devant : sinon, deux prestations le même jour
+            // et c'est l'ordre d'insertion qui décide laquelle s'affiche.
+            .OrderBy(x => x.ev!.Status == EventStatus.InProgress ? 0 : 1)
+            .ThenBy(x => x.ev!.Date)
+            .ThenBy(x => x.ev!.MeetingTime)
+            .ToList();
         if (joined.Count > 0)
         {
             _next = (joined[0].ev!, joined[0].asg);

@@ -13,7 +13,7 @@
     new("Event", e => @<b>@e.Name</b>),
     new("Date", e => @<text>@e.Date.Fmt()</text>),
     new("Lieu", e => @<text>@e.Venue</text>),
-    new("Statut", e => @<span class="pill @(e.Status==EventStatus.Past?"wait":"")">@StatusFr(e.Status)</span>)
+    new("Statut", e => @<span class="@e.Status.PillClass()">@e.Status.StatusFr()</span>)
 }; }
 <ResponsiveTable TItem="ServiceEvent" Items="_events"
     EmptyIcon="◷" EmptyTitle="Aucun event" EmptyHint="Crée ton premier event."
@@ -23,6 +23,4 @@
 @code {
     List<ServiceEvent> _events = new();
     protected override async Task OnInitializedAsync() => _events = await Data.GetEventsAsync();
-    string StatusFr(EventStatus s) => s switch {
-        EventStatus.Upcoming => "À venir", EventStatus.InProgress => "En cours", _ => "Passé" };
 }

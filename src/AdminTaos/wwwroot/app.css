@@ -36,6 +36,7 @@
   --side:#17181B; --side2:#1F2024; --sidetxt:#C9CDD4; --sidegold:#E7C76B;
   --ok:#2E7D32; --okbg:#E6F4EA; --warn:#B8902F; --warnbg:#FFF4DE;
   --bad:#C0392B; --badbg:#FBEAEA;
+  --done:#B4530A; --donebg:#FCEDE1;
   --pf:'Playfair',Georgia,serif; --sf:'Inter',system-ui,sans-serif;
   --side-w:240px; --rail-w:64px;
 }
@@ -177,6 +178,11 @@ h1{font-family:var(--pf);font-weight:700;font-size:22px;margin-bottom:2px}
 .pill.ok{background:var(--okbg);color:var(--ok)}
 .pill.bad{background:var(--badbg);color:var(--bad)}
 .pill.wait{background:#EEF0F3;color:var(--mut)}
+/* Statut d'un event : en cours, terminé, à venir */
+.pill.live{background:var(--okbg);color:var(--ok)}
+.pill.live::before{content:"●";margin-right:5px;font-size:9px;vertical-align:1px}
+.pill.done{background:var(--donebg);color:var(--done)}
+.pill.soon{background:#EEF0F3;color:var(--mut)}
 
 /* ---------- Stepper / Toggle / Chrono (names preserved for tests) ---------- */
 .stepper{display:flex;align-items:center;gap:10px}

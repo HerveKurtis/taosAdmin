@@ -10,7 +10,7 @@
     <StatCard Value="@_pendingAccounts.ToString()" Label="Comptes à valider" Href="m/team?filter=pending" />
     <StatCard Value="@_joinRequests.ToString()" Label="Demandes de participation" Href="m/events" />
     <StatCard Value="@_pendingTimesheets.ToString()" Label="Timesheets à valider" Href="m/timesheets" />
-    <StatCard Value="@_upcoming.Count.ToString()" Label="Events à venir" Href="m/events" />
+    <StatCard Value="@_upcomingCount.ToString()" Label="Events à venir" Href="m/events" />
 </div>
 
 <div class="lab">Comptes à valider</div>
@@ -19,13 +19,14 @@
 @{ var _upcomingCols = new List<ResponsiveTable<ServiceEvent>.Column> {
     new("Event", e => @<b>@e.Name</b>),
     new("Date", e => @<text>@e.Date.Fmt()</text>),
-    new("Lieu", e => @<text>@e.Venue</text>)
+    new("Lieu", e => @<text>@e.Venue</text>),
+    new("Statut", e => @<span class="@e.Status.PillClass()">@e.Status.StatusFr()</span>)
 }; }
 
-<div class="lab">Prochains events</div>
+<div class="lab">Events en cours et à venir</div>
 @if (_upcoming.Count == 0)
 {
-    <div class="card"><div class="m">Aucun event à venir</div></div>
+    <div class="card"><div class="m">Aucun event en cours ni à venir</div></div>
 }
 else
 {
@@ -38,6 +39,7 @@ else
     int _pendingAccounts, _joinRequests, _pendingTimesheets;
     string _pendingAccountNames = "";
     List<ServiceEvent> _upcoming = new();
+    int _upcomingCount;
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,7 +54,11 @@ else
         var ts = await Data.GetTimesheetsAsync();
         _pendingTimesheets = ts.Count(t => t.Status == TimesheetStatus.Sent);
 
-        _upcoming = (await Data.GetEventsAsync())
-            .Where(e => e.Status != EventStatus.Past).OrderBy(e => e.Date).Take(5).ToList();
+        var vivants = (await Data.GetEventsAsync())
+            .Where(e => e.Status != EventStatus.Past).ToList();
+        // Ce qui se déroule maintenant passe devant ce qui est prévu.
+        _upcoming = vivants.OrderBy(e => e.Status == EventStatus.InProgress ? 0 : 1)
+                           .ThenBy(e => e.Date).Take(5).ToList();
+        _upcomingCount = vivants.Count(e => e.Status == EventStatus.Upcoming);
     }
 }

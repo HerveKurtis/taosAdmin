@@ -48,7 +48,6 @@ public static class SeedData
             MeetingTime = new TimeOnly(17,0), ExpectedEndTime = new TimeOnly(23,0),
             DressCode = "Noir élégant", Instructions = "Arriver 15 min avant.",
             OnSiteContact = "Julie — 0470 00 00 00", IsOpenForSignup = false,
-            Status = EventStatus.Upcoming,
             RoleNeeds = new() {
                 new() { JobRoleId = RoleServer, CountNeeded = 4, HourlyRate = 14m },
                 new() { JobRoleId = RoleHost,   CountNeeded = 2, HourlyRate = 15m },
@@ -59,7 +58,7 @@ public static class SeedData
             Address = "Av. Franklin Roosevelt 67, Bruxelles", Date = today.AddDays(8),
             MeetingTime = new TimeOnly(18,30), ExpectedEndTime = new TimeOnly(23,30),
             DressCode = "Tenue de ville", Instructions = "", OnSiteContact = "",
-            IsOpenForSignup = true, Status = EventStatus.Upcoming,
+            IsOpenForSignup = true,
             RoleNeeds = new() {
                 new() { JobRoleId = RoleServer, CountNeeded = 3, HourlyRate = 14m },
             }
@@ -69,7 +68,7 @@ public static class SeedData
             Address = "Av. Louise 71, Bruxelles", Date = today,
             MeetingTime = new TimeOnly(11,0), ExpectedEndTime = new TimeOnly(16,0),
             DressCode = "Noir élégant", Instructions = "", OnSiteContact = "", ResponsableAccountId = EmpActiveHost,
-            IsOpenForSignup = false, Status = EventStatus.InProgress,
+            IsOpenForSignup = false,
             RoleNeeds = new() {
                 new() { JobRoleId = RoleServer, CountNeeded = 1, HourlyRate = 14m },
                 new() { JobRoleId = RoleHost,   CountNeeded = 1, HourlyRate = 15m },
@@ -80,7 +79,7 @@ public static class SeedData
             Address = "Chaussée de Bruxelles 111", Date = today.AddDays(-6),
             MeetingTime = new TimeOnly(15,0), ExpectedEndTime = new TimeOnly(23,0),
             DressCode = "Noir élégant", Instructions = "", OnSiteContact = "",
-            IsOpenForSignup = false, Status = EventStatus.Past,
+            IsOpenForSignup = false,
             RoleNeeds = new() {
                 new() { JobRoleId = RoleServer, CountNeeded = 2, HourlyRate = 14m },
             }
@@ -90,7 +89,7 @@ public static class SeedData
             Address = "Rue Ravenstein 23, Bruxelles", Date = today.AddDays(-12),
             MeetingTime = new TimeOnly(18,0), ExpectedEndTime = new TimeOnly(23,30),
             DressCode = "Noir élégant", Instructions = "", OnSiteContact = "",
-            IsOpenForSignup = false, Status = EventStatus.Past,
+            IsOpenForSignup = false,
             RoleNeeds = new() {
                 new() { JobRoleId = RoleServer, CountNeeded = 2, HourlyRate = 14m },
                 new() { JobRoleId = RoleHost,   CountNeeded = 1, HourlyRate = 15m },
@@ -101,7 +100,7 @@ public static class SeedData
             Address = "Square Victoria Régina 1, Bruxelles", Date = today.AddDays(-3),
             MeetingTime = new TimeOnly(9,30), ExpectedEndTime = new TimeOnly(15,0),
             DressCode = "Tenue de ville", Instructions = "", OnSiteContact = "",
-            IsOpenForSignup = false, Status = EventStatus.Past,
+            IsOpenForSignup = false,
             RoleNeeds = new() {
                 new() { JobRoleId = RoleServer, CountNeeded = 1, HourlyRate = 14m },
             }

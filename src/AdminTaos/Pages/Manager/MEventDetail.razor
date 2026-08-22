@@ -46,7 +46,8 @@ else
         </div>
     }
 
-    @if (_confirmed.Count > 0)
+    @* Pendant le service, le tableau d'équipe porte déjà ce décompte : pas deux fois. *@
+    @if (_confirmed.Count > 0 && _e.Status != EventStatus.InProgress)
     {
         <div class="lab">Présences</div>
         <div class="panel">
@@ -54,6 +55,8 @@ else
         </div>
     }
 
+    @if (_e.Status != EventStatus.InProgress)
+    {
     <div class="lab">Personnel assigné</div>
     @if (_confirmed.Count == 0)
     {
@@ -87,6 +90,15 @@ else
         </div>
     }
 
+    }
+    else
+    {
+        @* Le service tourne : une seule liste, qui porte le suivi et le retrait. *@
+        <div class="lab">Équipe du jour</div>
+        @if (_removeErr is not null) { <p class="pill bad" style="display:block;margin:12px 0">@_removeErr</p> }
+        <TeamBoard Event="_e" RowAction="RetirerBouton" />
+    }
+
     @if (_requests.Count > 0)
     {
         <div class="lab">Demandes de participation</div>
@@ -101,14 +113,6 @@ else
                 </div>
             </div>
         }
-    }
-
-    @if (_e.Status == EventStatus.InProgress)
-    {
-        <div class="panel" style="margin-top:18px">
-            <div class="t">Service en cours</div>
-            <div class="m">Suis qui est arrivé, qui est en service et qui est en pause.</div>
-        </div>
     }
 
     @* On prépare avant, on pilote pendant : l'action mise en avant suit l'état de l'event.
@@ -145,6 +149,24 @@ else
         _confirmed = asgs.Where(a => a.Status == AssignmentStatus.Confirmed).ToList();
         _requests  = asgs.Where(a => a.Status == AssignmentStatus.PendingApproval).ToList();
     }
+
+    /// <summary>Le retrait, rendu par le tableau d'équipe pendant le service. Le responsable,
+    /// lui, n'en reçoit aucun : il ne retire personne.</summary>
+    RenderFragment<Assignment> RetirerBouton => a => @<text>
+        @if (_removing?.Id == a.Id)
+        {
+            <div class="m">Retirer @Name(a.AccountId) de cet event ? L'assignation sera supprimée.</div>
+            <div class="row2" style="margin-top:8px">
+                <button class="btn ghost asg-remove-cancel" @onclick="() => _removing = null">Annuler</button>
+                <button class="btn danger asg-remove-confirm" @onclick="ConfirmRemove">Retirer</button>
+            </div>
+        }
+        else
+        {
+            <button class="btn ghost asg-remove" style="padding:4px 10px;font-size:12px"
+                    @onclick="() => AskRemove(a)">Retirer</button>
+        }
+    </text>;
 
     /// <summary>Met en avant l'action qui correspond au moment où se trouve l'event.</summary>
     string ActionBtn(EventStatus quand) => _e?.Status == quand ? "btn primary" : "btn ghost";

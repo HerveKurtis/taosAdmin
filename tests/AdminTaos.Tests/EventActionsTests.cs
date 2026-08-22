@@ -21,7 +21,16 @@ public class EventActionsTests : BunitContext
         await db.CreateEventAsync(new ServiceEvent {
             Id = "evt-soon2", Name = "À venir", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(4)),
             MeetingTime = new TimeOnly(18, 0), ExpectedEndTime = new TimeOnly(23, 0) });
+        // MEventDetail affiche le tableau d'équipe en ligne pendant un service : il lui faut
+        // une session, comme en production.
+        var me = (await db.GetAccountAsync(SeedData.MgrId))!;
+        var fake = new FakeAuthClient();
+        fake.PreRegister(me.Id, me.Email, "pwd");
+        var auth = new AuthState(fake, db);
+        await auth.LoginAsync(me.Email, "pwd");
+
         Services.AddSingleton<IDataService>(db);
+        Services.AddSingleton(auth);
         return db;
     }
 
@@ -63,12 +72,29 @@ public class EventActionsTests : BunitContext
     }
 
     [Fact]
-    public async Task Un_event_en_cours_annonce_l_equipe_du_jour()
+    public async Task Un_event_en_cours_affiche_l_equipe_sans_clic_supplementaire()
     {
-        await Db();
+        var db = await Db();
+        await db.CreateAssignmentAsync(new Assignment {
+            Id = "a-live2", EventId = "evt-live2", AccountId = SeedData.EmpActiveServer,
+            JobRoleId = SeedData.RoleServer, Status = AssignmentStatus.Confirmed });
+
         var cut = Render<AdminTaos.Pages.Manager.MEventDetail>(p => p.Add(x => x.Id, "evt-live2"));
 
-        Assert.Contains("Service en cours", cut.Markup);
+        Assert.Contains("Équipe du jour", cut.Markup);
+        Assert.Single(cut.FindAll(".team-member"));
+        Assert.NotEmpty(cut.FindAll(".shift-tally"));
+        Assert.NotEmpty(cut.FindAll("button.presence-present"));
+    }
+
+    [Fact]
+    public async Task Un_event_a_venir_n_affiche_pas_le_tableau_d_equipe()
+    {
+        await Db();
+        var cut = Render<AdminTaos.Pages.Manager.MEventDetail>(p => p.Add(x => x.Id, "evt-soon2"));
+
+        Assert.Empty(cut.FindAll(".shift-tally"));
+        Assert.Empty(cut.FindAll("button.presence-present"));
     }
 
     [Fact]
@@ -79,5 +105,61 @@ public class EventActionsTests : BunitContext
 
         Assert.DoesNotContain("primary", ClasseDu(cut, "Assigner du personnel"));
         Assert.DoesNotContain("primary", ClasseDu(cut, "Équipe du jour"));
+    }
+
+    [Fact]
+    public async Task Pendant_le_service_la_liste_n_est_affichee_qu_une_fois()
+    {
+        var db = await Db();
+        await db.CreateAssignmentAsync(new Assignment {
+            Id = "a-dup", EventId = "evt-live2", AccountId = SeedData.EmpActiveServer,
+            JobRoleId = SeedData.RoleServer, Status = AssignmentStatus.Confirmed });
+
+        var cut = Render<AdminTaos.Pages.Manager.MEventDetail>(p => p.Add(x => x.Id, "evt-live2"));
+
+        Assert.DoesNotContain("Personnel assigné", cut.Markup);
+        Assert.Single(cut.FindAll(".presence-count"));      // un seul décompte de présences
+        Assert.Empty(cut.FindAll(".presence-tally"));       // l'ancien panneau a cédé la place
+        Assert.Single(cut.FindAll(".team-member"));
+    }
+
+    [Fact]
+    public async Task Le_retrait_reste_possible_pendant_le_service()
+    {
+        var db = await Db();
+        await db.CreateAssignmentAsync(new Assignment {
+            Id = "a-rm", EventId = "evt-live2", AccountId = SeedData.EmpActiveServer,
+            JobRoleId = SeedData.RoleServer, Status = AssignmentStatus.Confirmed });
+
+        var cut = Render<AdminTaos.Pages.Manager.MEventDetail>(p => p.Add(x => x.Id, "evt-live2"));
+
+        cut.Find("button.asg-remove").Click();
+        cut.Find("button.asg-remove-confirm").Click();
+
+        Assert.Empty(await db.GetAssignmentsForEventAsync("evt-live2"));
+    }
+
+    [Fact]
+    public async Task Le_responsable_ne_recoit_aucun_bouton_de_retrait()
+    {
+        var db = await Db();
+        var e = (await db.GetEventAsync("evt-live2"))!;
+        e.ResponsableAccountId = SeedData.EmpActiveHost;
+        await db.UpdateEventAsync(e);
+        await db.CreateAssignmentAsync(new Assignment {
+            Id = "a-resp", EventId = "evt-live2", AccountId = SeedData.EmpActiveServer,
+            JobRoleId = SeedData.RoleServer, Status = AssignmentStatus.Confirmed });
+
+        var sarah = (await db.GetAccountAsync(SeedData.EmpActiveHost))!;
+        var fake = new FakeAuthClient();
+        fake.PreRegister(sarah.Id, sarah.Email, "pwd");
+        var auth = new AuthState(fake, db);
+        await auth.LoginAsync(sarah.Email, "pwd");
+        Services.AddSingleton(auth);
+
+        var cut = Render<AdminTaos.Pages.Shared.EventTeam>(p => p.Add(x => x.Id, "evt-live2"));
+
+        Assert.Single(cut.FindAll(".team-member"));
+        Assert.Empty(cut.FindAll("button.asg-remove"));
     }
 }

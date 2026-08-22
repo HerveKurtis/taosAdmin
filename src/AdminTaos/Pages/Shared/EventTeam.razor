@@ -4,10 +4,10 @@
 @inject IDataService Data
 @inject AuthState Auth
 @inject NavigationManager Nav
-@implements IDisposable
 
 @* Une seule page, deux routes : NavigationGuard n'inspecte que le premier segment du chemin,
-   donc un Collaborateur entre par /e et un Admin par /m, sans toucher au guard. *@
+   donc un Collaborateur entre par /e et un Admin par /m, sans toucher au guard.
+   Le tableau lui-même vit dans TeamBoard, partagé avec la fiche de l'event. *@
 
 <button class="backlink" @onclick="GoBack">‹ Détail event</button>
 
@@ -42,95 +42,16 @@ else
     }
 
     <div class="lab">Effectif</div>
-    <div class="panel">
-        <div class="m presence-count">@Present présent@(Present > 1 ? "s" : "") · @Absent absent@(Absent > 1 ? "s" : "") · @Expected attendu@(Expected > 1 ? "s" : "")</div>
-    </div>
-
-    @if (_e.Status == EventStatus.InProgress)
-    {
-        <div class="panel">
-            <div class="m shift-tally">@Compte(ShiftState.InService) en service · @Compte(ShiftState.OnBreak) en pause · @Compte(ShiftState.NotStarted) pas commencé · @Compte(ShiftState.Finished) terminé</div>
-        </div>
-    }
-
-    @if (_err is not null) { <p class="pill bad" style="display:block;margin:12px 0">@_err</p> }
-
-    @foreach (var group in _team.GroupBy(m => m.RoleId))
-    {
-        <div class="lab">@RoleName(group.Key)@TargetSuffix(group.Key, group.Count())</div>
-        @foreach (var m in group)
-        {
-            <div class="panel team-member" data-account-id="@m.Profile.Id">
-                <div style="display:flex;align-items:center;gap:14px">
-                    @if (!string.IsNullOrWhiteSpace(m.Profile.PhotoUrl))
-                    {
-                        <img class="team-avatar" src="@m.Profile.PhotoUrl" alt="@m.Profile.FullName"
-                             style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:1px solid var(--line)" />
-                    }
-                    else
-                    {
-                        <div class="team-initials"
-                             style="width:48px;height:48px;border-radius:50%;background:var(--goldbg);color:var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--pf);font-weight:700">@Initials(m.Profile.FullName)</div>
-                    }
-                    <div style="flex:1">
-                        <div class="t">@m.Profile.FullName</div>
-                        @if (string.IsNullOrWhiteSpace(m.Profile.Phone))
-                        {
-                            <div class="m">Téléphone non renseigné</div>
-                        }
-                        else
-                        {
-                            <div class="m"><a class="team-phone" href="@TelHref(m.Profile.Phone)">@m.Profile.Phone</a></div>
-                        }
-                    </div>
-                </div>
-                <div style="margin-top:10px">
-                    <span class="@m.Asg.Shift.PillClass() shift-state">@m.Asg.Shift.StatusFr()</span>
-                    @if (m.Asg.ShiftSince is { } depuis)
-                    {
-                        <span class="m" style="margin-left:8px">depuis @depuis.Fmt()@Ecoule(m.Asg)</span>
-                    }
-                </div>
-                <div class="row2" style="margin-top:10px">
-                    <button class="btn @(m.Asg.Presence == PresenceStatus.Present ? "primary" : "ghost") presence-present"
-                            @onclick="() => SetPresence(m.Asg, PresenceStatus.Present)">Présent</button>
-                    <button class="btn @(m.Asg.Presence == PresenceStatus.Absent ? "danger" : "ghost") presence-absent"
-                            @onclick="() => SetPresence(m.Asg, PresenceStatus.Absent)">Absent</button>
-                </div>
-            </div>
-        }
-    }
+    <TeamBoard Event="_e" />
 }
 
 @code {
     [Parameter] public string Id { get; set; } = "";
 
-    public record Member(Profile Profile, Assignment Asg, string RoleId);
-
     ServiceEvent? _e;
-    List<Member> _team = new();
-    Dictionary<string,string> _roleNames = new();
-    Dictionary<string,Profile> _profiles = new();
     bool _allowed, _loading = true;
-    string? _err;
-
-    System.Threading.Timer? _refresh;
 
     protected override async Task OnInitializedAsync()
-    {
-        await Load();
-
-        // Une vue du soir qui ne bouge pas ment : « en service » affiché pour quelqu'un qui a
-        // fini depuis vingt minutes est pire que pas d'écran. On n'interroge que pendant l'event.
-        if (_allowed && _e?.Status == EventStatus.InProgress)
-            _refresh = new System.Threading.Timer(
-                _ => InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); }),
-                null, 30_000, 30_000);
-    }
-
-    public void Dispose() => _refresh?.Dispose();
-
-    async Task Load()
     {
         _e = await Data.GetEventAsync(Id);
         if (_e is null) { _loading = false; return; }
@@ -138,110 +59,8 @@ else
         var me = Auth.CurrentUser;
         _allowed = me is not null
                    && (me.Type == AccountType.Manager || me.Id == _e.ResponsableAccountId);
-        if (!_allowed) { _loading = false; return; }
-
-        _roleNames = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
-
-        // On lit /profiles et jamais /accounts : un responsable non-admin n'a pas le droit de
-        // lire les comptes, et une requête refusée échoue en entier — la page serait vide.
-        _profiles = (await Data.GetProfilesAsync()).ToDictionary(p => p.Id);
-
-        await RefreshAsync();
-        await ReconcileAsync();
         _loading = false;
     }
-
-    /// <summary>
-    /// Répare les projections périmées à partir des timesheets. Réservé à l'admin, seul à
-    /// pouvoir les lire : un service démarré avant l'arrivée de cette projection, ou resté
-    /// désynchronisé, s'afficherait « pas commencé » pour tout le monde. Une fois réparé, le
-    /// responsable en profite sans jamais lire la moindre heure.
-    /// </summary>
-    async Task ReconcileAsync()
-    {
-        if (Auth.CurrentUser?.Type != AccountType.Manager || _team.Count == 0) return;
-
-        try
-        {
-            var feuilles = (await Data.GetTimesheetsAsync()).ToDictionary(t => t.AssignmentId);
-            foreach (var m in _team)
-                await ShiftSync.ApplyAsync(Data, m.Asg,
-                    feuilles.GetValueOrDefault(m.Asg.Id));
-        }
-        catch
-        {
-            // La réparation est un confort : son échec ne doit pas vider l'écran du responsable.
-        }
-    }
-
-    /// <summary>
-    /// Relit les seules affectations. Rôles métier et fiches partagées ne bougent pas pendant
-    /// un service : les relire toutes les 30 secondes multiplierait la facture Firestore
-    /// pour rien.
-    /// </summary>
-    public async Task RefreshAsync()
-    {
-        _team = (await Data.GetAssignmentsForEventAsync(Id))
-            .Where(a => a.Status == AssignmentStatus.Confirmed)
-            .Select(a => new Member(Known(_profiles, a.AccountId), a, a.JobRoleId))
-            .OrderBy(m => m.Profile.FullName)
-            .ToList();
-    }
-
-    /// <summary>Personne ne disparaît de la liste du responsable faute de fiche partagée.</summary>
-    static Profile Known(Dictionary<string,Profile> profiles, string accountId) =>
-        profiles.TryGetValue(accountId, out var p)
-            ? p
-            : new Profile { Id = accountId, FullName = "Profil incomplet" };
-
-    int Compte(ShiftState s) => _team.Count(m => m.Asg.Shift == s);
-
-    /// <summary>« (2h10) » à côté de l'heure, pour lire la durée sans faire le calcul.</summary>
-    string Ecoule(Assignment a)
-    {
-        if (a.Shift is ShiftState.NotStarted or ShiftState.Finished || a.ShiftSince is not { } d)
-            return "";
-        var ecoule = DateTime.Now - d;
-        return ecoule < TimeSpan.Zero ? "" : $" ({ecoule.FmtShort()})";
-    }
-
-    string RoleName(string id) => _roleNames.GetValueOrDefault(id, "Rôle inconnu");
-
-    /// <summary>« · 3 / 4 » quand l'event déclare un effectif pour ce rôle, rien sinon.</summary>
-    string TargetSuffix(string roleId, int assigned)
-    {
-        var need = _e?.RoleNeeds.FirstOrDefault(n => n.JobRoleId == roleId);
-        return need is null ? "" : $" · {assigned} / {need.CountNeeded}";
-    }
-
-    static string Initials(string fullName)
-        => string.Concat(fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Take(2).Select(p => char.ToUpperInvariant(p[0])));
-
-    int Present  => _team.Count(m => m.Asg.Presence == PresenceStatus.Present);
-    int Absent   => _team.Count(m => m.Asg.Presence == PresenceStatus.Absent);
-    int Expected => _team.Count(m => m.Asg.Presence == PresenceStatus.Expected);
-
-    async Task SetPresence(Assignment a, PresenceStatus status)
-    {
-        _err = null;
-        var previous = a.Presence;
-        try
-        {
-            a.Presence = status;
-            await Data.UpdateAssignmentAsync(a);
-            await Load();
-        }
-        catch (Exception ex)
-        {
-            a.Presence = previous;   // l'écran ne doit pas montrer un pointage qui n'a pas été écrit
-            _err = $"Échec du pointage : {ex.Message}";
-        }
-    }
-
-    /// <summary>Un lien tel: ne tolère pas les espaces de mise en forme du numéro.</summary>
-    static string TelHref(string phone)
-        => "tel:" + new string(phone.Where(c => !char.IsWhiteSpace(c)).ToArray());
 
     void GoBack()
     {

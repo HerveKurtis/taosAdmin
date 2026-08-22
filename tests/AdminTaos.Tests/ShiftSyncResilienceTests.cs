@@ -97,7 +97,7 @@ public class ShiftSyncResilienceTests : BunitContext
         Services.AddSingleton<IDataService>(db);
         Services.AddSingleton(auth);
 
-        var cut = Render<AdminTaos.Pages.Shared.EventTeam>(p => p.Add(x => x.Id, "evt-r"));
+        var cut = Render<AdminTaos.Components.TeamBoard>(p => p.Add(x => x.Event, e));
         var profilsApresChargement = db.Profils;
         var rolesApresChargement = db.Roles;
         var affectationsApresChargement = db.Affectations;

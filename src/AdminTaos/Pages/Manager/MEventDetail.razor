@@ -103,9 +103,21 @@ else
         }
     }
 
+    @if (_e.Status == EventStatus.InProgress)
+    {
+        <div class="panel" style="margin-top:18px">
+            <div class="t">Service en cours</div>
+            <div class="m">Suis qui est arrivé, qui est en service et qui est en pause.</div>
+        </div>
+    }
+
+    @* On prépare avant, on pilote pendant : l'action mise en avant suit l'état de l'event.
+       Les deux restent atteignables — on complète parfois une équipe en plein service. *@
     <div class="actions">
-        <NavLink class="btn ghost" href="@($"m/events/{_e.Id}/assign")">Assigner du personnel</NavLink>
-        <NavLink class="btn ghost" href="@($"m/events/{_e.Id}/equipe")">Équipe du jour</NavLink>
+        <NavLink class="@ActionBtn(EventStatus.Upcoming)"
+                 href="@($"m/events/{_e.Id}/assign")">Assigner du personnel</NavLink>
+        <NavLink class="@ActionBtn(EventStatus.InProgress)"
+                 href="@($"m/events/{_e.Id}/equipe")">Équipe du jour</NavLink>
         <NavLink class="btn ghost" href="@($"m/events/{_e.Id}/edit")">Éditer l'event</NavLink>
     </div>
 }
@@ -133,6 +145,9 @@ else
         _confirmed = asgs.Where(a => a.Status == AssignmentStatus.Confirmed).ToList();
         _requests  = asgs.Where(a => a.Status == AssignmentStatus.PendingApproval).ToList();
     }
+
+    /// <summary>Met en avant l'action qui correspond au moment où se trouve l'event.</summary>
+    string ActionBtn(EventStatus quand) => _e?.Status == quand ? "btn primary" : "btn ghost";
 
     int PresentCount  => _confirmed.Count(a => a.Presence == PresenceStatus.Present);
     int AbsentCount   => _confirmed.Count(a => a.Presence == PresenceStatus.Absent);

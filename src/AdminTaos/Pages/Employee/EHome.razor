@@ -68,6 +68,9 @@ else
         {
             _next = (joined[0].ev!, joined[0].asg);
             _ts = await Data.GetTimesheetForAssignmentAsync(joined[0].asg.Id);
+            // Répare sa propre projection : un service déjà en cours doit se voir chez le
+            // responsable même si son écran de shift n'a pas été rouvert depuis.
+            await ShiftSync.ApplyAsync(Data, joined[0].asg, _ts);
             CanStartToday = _next.Value.ev.Date == DateOnly.FromDateTime(DateTime.Today)
                 && (_ts is null || _ts.Status == TimesheetStatus.NotStarted);
         }

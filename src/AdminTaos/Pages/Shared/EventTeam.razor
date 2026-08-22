@@ -147,7 +147,31 @@ else
         _profiles = (await Data.GetProfilesAsync()).ToDictionary(p => p.Id);
 
         await RefreshAsync();
+        await ReconcileAsync();
         _loading = false;
+    }
+
+    /// <summary>
+    /// Répare les projections périmées à partir des timesheets. Réservé à l'admin, seul à
+    /// pouvoir les lire : un service démarré avant l'arrivée de cette projection, ou resté
+    /// désynchronisé, s'afficherait « pas commencé » pour tout le monde. Une fois réparé, le
+    /// responsable en profite sans jamais lire la moindre heure.
+    /// </summary>
+    async Task ReconcileAsync()
+    {
+        if (Auth.CurrentUser?.Type != AccountType.Manager || _team.Count == 0) return;
+
+        try
+        {
+            var feuilles = (await Data.GetTimesheetsAsync()).ToDictionary(t => t.AssignmentId);
+            foreach (var m in _team)
+                await ShiftSync.ApplyAsync(Data, m.Asg,
+                    feuilles.GetValueOrDefault(m.Asg.Id));
+        }
+        catch
+        {
+            // La réparation est un confort : son échec ne doit pas vider l'écran du responsable.
+        }
     }
 
     /// <summary>

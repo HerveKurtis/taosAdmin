@@ -7,3 +7,4 @@ public enum AssignmentSource { AssignedByManager, SelfRequest }
 public enum AssignmentStatus { PendingApproval, Confirmed, Rejected }
 public enum TimesheetStatus { NotStarted, InProgress, ToSend, Sent, Validated, Rejected }
 public enum PresenceStatus { Expected, Present, Absent }
+public enum ShiftState { NotStarted, InService, OnBreak, Finished }

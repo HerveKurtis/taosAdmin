@@ -82,6 +82,7 @@ else
         _ts.StartedAt = DateTime.Now;
         _ts.Status = TimesheetStatus.InProgress;
         await Data.UpdateTimesheetAsync(_ts);
+        await ShiftSync.ApplyAsync(Data, asg, _ts);
         Nav.NavigateTo($"e/events/{_next.Value.ev.Id}/active");
     }
 }

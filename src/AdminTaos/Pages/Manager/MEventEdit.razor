@@ -16,6 +16,19 @@
     <div class="field"><span>Fin prévue</span><input type="time" @bind="_end" /></div>
 </div>
 
+<div class="lab">Candidatures spontanées</div>
+<div class="panel">
+    <div class="field">
+        <span>Ouvert aux candidatures</span>
+        <ToggleSwitch Value="_e.IsOpenForSignup" ValueChanged="@(v => _e.IsOpenForSignup = v)" />
+    </div>
+    <div class="m" style="margin-top:8px">
+        @(_e.IsOpenForSignup
+            ? "Les collaborateurs portant un rôle demandé peuvent se proposer. Tu valides ensuite chaque demande."
+            : "Personne ne peut se proposer : tu assignes le personnel toi-même.")
+    </div>
+</div>
+
 <div class="lab">Responsable du jour</div>
 <div class="panel">
     @if (_responsable is not null)

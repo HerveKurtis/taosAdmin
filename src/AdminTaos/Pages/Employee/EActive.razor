@@ -36,6 +36,7 @@
     [Parameter] public string Id { get; set; } = "";
     ServiceEvent? _e;
     Timesheet? _ts;
+    Assignment? _asg;
     string RoleName = "";
 
     protected override async Task OnInitializedAsync()
@@ -43,14 +44,19 @@
         // Le garde de navigation redirige, mais la page peut être rendue avant : ne pas lever.
         if (Auth.CurrentUser is not { } u) return;
         _e = await Data.GetEventAsync(Id);
-        var asg = (await Data.GetAssignmentsForAccountAsync(u.Id)).FirstOrDefault(a => a.EventId == Id);
-        if (asg is not null)
+        _asg = (await Data.GetAssignmentsForAccountAsync(u.Id)).FirstOrDefault(a => a.EventId == Id);
+        if (_asg is { } asg)
         {
             _ts = await Data.GetTimesheetForAssignmentAsync(asg.Id);
+            // Rattrapage : une affectation antérieure à cette fonctionnalité, ou restée
+            // désynchronisée, retrouve son état réel dès que l'écran s'ouvre.
+            await ShiftSync.ApplyAsync(Data, asg, _ts);
             RoleName = (await Data.GetJobRolesAsync())
                 .FirstOrDefault(r => r.Id == asg.JobRoleId)?.Name ?? "";
         }
     }
+
+    Task SyncShift() => _asg is null ? Task.CompletedTask : ShiftSync.ApplyAsync(Data, _asg, _ts);
 
     /// <summary>Temps presté à cet instant. Pendant une pause il est figé à l'entrée en pause.</summary>
     TimeSpan WorkedSoFar()
@@ -65,6 +71,7 @@
         if (_ts!.IsOnBreak) return;
         _ts.Breaks.Add(new ShiftBreak { StartedAt = DateTime.Now });
         await Data.UpdateTimesheetAsync(_ts);
+        await SyncShift();
     }
 
     async Task ResumeShift()
@@ -72,6 +79,7 @@
         if (_ts!.OpenBreak is not { } open) return;
         open.EndedAt = DateTime.Now;
         await Data.UpdateTimesheetAsync(_ts);
+        await SyncShift();
     }
 
     async Task Finish()
@@ -82,6 +90,7 @@
         _ts.EndedAt = end;
         _ts.Status = TimesheetStatus.ToSend;
         await Data.UpdateTimesheetAsync(_ts);
+        await SyncShift();
         Nav.NavigateTo($"e/events/{Id}/recap");
     }
 }

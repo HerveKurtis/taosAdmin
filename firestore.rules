@@ -68,13 +68,28 @@ service cloud.firestore {
                         && request.resource.data.source    == "SelfRequest"
                         && request.resource.data.status    == "PendingApproval");
 
+      // Chacun projette son propre état de service sur son affectation — c'est ce qui permet
+      // au responsable de voir l'équipe sans lire les timesheets des autres. La présence est
+      // autorisée en écriture ici, mais uniquement vers "Present" : démarrer son service
+      // prouve qu'on est là, alors que pouvoir se déclarer absent couvrirait une défection.
+      function estSonAffectation() {
+        return isEmployee() && resource.data.accountId == request.auth.uid;
+      }
+      function nAToucheQueSonService() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['shift', 'shiftSince', 'presence'])
+               && (request.resource.data.presence == resource.data.presence
+                   || request.resource.data.presence == 'Present');
+      }
+
       // Le responsable ne peut toucher que le pointage, jamais le reste de l'assignation.
       // FirestoreDataService écrit via setDoc : diff() ne retient que les valeurs qui
       // changent réellement, donc hasOnly(['presence']) reste satisfait.
       allow update: if isManager()
                     || (isResponsableOf(resource.data.eventId)
                         && request.resource.data.diff(resource.data)
-                               .affectedKeys().hasOnly(['presence']));
+                               .affectedKeys().hasOnly(['presence']))
+                    || (estSonAffectation() && nAToucheQueSonService());
 
       allow delete: if isManager();
     }

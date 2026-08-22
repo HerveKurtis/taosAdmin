@@ -4,6 +4,7 @@
 @inject IDataService Data
 @inject AuthState Auth
 @inject NavigationManager Nav
+@implements IDisposable
 
 @* Une seule page, deux routes : NavigationGuard n'inspecte que le premier segment du chemin,
    donc un Collaborateur entre par /e et un Admin par /m, sans toucher au guard. *@
@@ -45,6 +46,13 @@ else
         <div class="m presence-count">@Present présent@(Present > 1 ? "s" : "") · @Absent absent@(Absent > 1 ? "s" : "") · @Expected attendu@(Expected > 1 ? "s" : "")</div>
     </div>
 
+    @if (_e.Status == EventStatus.InProgress)
+    {
+        <div class="panel">
+            <div class="m shift-tally">@Compte(ShiftState.InService) en service · @Compte(ShiftState.OnBreak) en pause · @Compte(ShiftState.NotStarted) pas commencé · @Compte(ShiftState.Finished) terminé</div>
+        </div>
+    }
+
     @if (_err is not null) { <p class="pill bad" style="display:block;margin:12px 0">@_err</p> }
 
     @foreach (var group in _team.GroupBy(m => m.RoleId))
@@ -76,6 +84,13 @@ else
                         }
                     </div>
                 </div>
+                <div style="margin-top:10px">
+                    <span class="@m.Asg.Shift.PillClass() shift-state">@m.Asg.Shift.StatusFr()</span>
+                    @if (m.Asg.ShiftSince is { } depuis)
+                    {
+                        <span class="m" style="margin-left:8px">depuis @depuis.Fmt()@Ecoule(m.Asg)</span>
+                    }
+                </div>
                 <div class="row2" style="margin-top:10px">
                     <button class="btn @(m.Asg.Presence == PresenceStatus.Present ? "primary" : "ghost") presence-present"
                             @onclick="() => SetPresence(m.Asg, PresenceStatus.Present)">Présent</button>
@@ -95,10 +110,25 @@ else
     ServiceEvent? _e;
     List<Member> _team = new();
     Dictionary<string,string> _roleNames = new();
+    Dictionary<string,Profile> _profiles = new();
     bool _allowed, _loading = true;
     string? _err;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    System.Threading.Timer? _refresh;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+
+        // Une vue du soir qui ne bouge pas ment : « en service » affiché pour quelqu'un qui a
+        // fini depuis vingt minutes est pire que pas d'écran. On n'interroge que pendant l'event.
+        if (_allowed && _e?.Status == EventStatus.InProgress)
+            _refresh = new System.Threading.Timer(
+                _ => InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); }),
+                null, 30_000, 30_000);
+    }
+
+    public void Dispose() => _refresh?.Dispose();
 
     async Task Load()
     {
@@ -114,15 +144,24 @@ else
 
         // On lit /profiles et jamais /accounts : un responsable non-admin n'a pas le droit de
         // lire les comptes, et une requête refusée échoue en entier — la page serait vide.
-        var profiles = (await Data.GetProfilesAsync()).ToDictionary(p => p.Id);
+        _profiles = (await Data.GetProfilesAsync()).ToDictionary(p => p.Id);
 
+        await RefreshAsync();
+        _loading = false;
+    }
+
+    /// <summary>
+    /// Relit les seules affectations. Rôles métier et fiches partagées ne bougent pas pendant
+    /// un service : les relire toutes les 30 secondes multiplierait la facture Firestore
+    /// pour rien.
+    /// </summary>
+    public async Task RefreshAsync()
+    {
         _team = (await Data.GetAssignmentsForEventAsync(Id))
             .Where(a => a.Status == AssignmentStatus.Confirmed)
-            .Select(a => new Member(Known(profiles, a.AccountId), a, a.JobRoleId))
+            .Select(a => new Member(Known(_profiles, a.AccountId), a, a.JobRoleId))
             .OrderBy(m => m.Profile.FullName)
             .ToList();
-
-        _loading = false;
     }
 
     /// <summary>Personne ne disparaît de la liste du responsable faute de fiche partagée.</summary>
@@ -130,6 +169,17 @@ else
         profiles.TryGetValue(accountId, out var p)
             ? p
             : new Profile { Id = accountId, FullName = "Profil incomplet" };
+
+    int Compte(ShiftState s) => _team.Count(m => m.Asg.Shift == s);
+
+    /// <summary>« (2h10) » à côté de l'heure, pour lire la durée sans faire le calcul.</summary>
+    string Ecoule(Assignment a)
+    {
+        if (a.Shift is ShiftState.NotStarted or ShiftState.Finished || a.ShiftSince is not { } d)
+            return "";
+        var ecoule = DateTime.Now - d;
+        return ecoule < TimeSpan.Zero ? "" : $" ({ecoule.FmtShort()})";
+    }
 
     string RoleName(string id) => _roleNames.GetValueOrDefault(id, "Rôle inconnu");
 

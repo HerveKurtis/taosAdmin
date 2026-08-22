@@ -183,6 +183,7 @@ h1{font-family:var(--pf);font-weight:700;font-size:22px;margin-bottom:2px}
 .pill.live::before{content:"●";margin-right:5px;font-size:9px;vertical-align:1px}
 .pill.done{background:var(--donebg);color:var(--done)}
 .pill.soon{background:#EEF0F3;color:var(--mut)}
+.pill.paused{background:var(--warnbg);color:var(--warn)}
 
 /* ---------- Stepper / Toggle / Chrono (names preserved for tests) ---------- */
 .stepper{display:flex;align-items:center;gap:10px}

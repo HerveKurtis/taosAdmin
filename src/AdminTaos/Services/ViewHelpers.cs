@@ -20,6 +20,22 @@ public static class ViewHelpers
     public static string Fmt(this TimeOnly t) => t.ToString("HH:mm");
     public static string Fmt(this DateTime? dt) => dt?.ToString("HH:mm") ?? "—";
 
+    public static string StatusFr(this ShiftState s) => s switch
+    {
+        ShiftState.InService => "En service",
+        ShiftState.OnBreak   => "En pause",
+        ShiftState.Finished  => "Terminé",
+        _                    => "Pas commencé"
+    };
+
+    public static string PillClass(this ShiftState s) => s switch
+    {
+        ShiftState.InService => "pill live",
+        ShiftState.OnBreak   => "pill paused",
+        ShiftState.Finished  => "pill done",
+        _                    => "pill soon"
+    };
+
     public static string StatusFr(this EventStatus s) => s switch
     {
         EventStatus.Upcoming   => "À venir",

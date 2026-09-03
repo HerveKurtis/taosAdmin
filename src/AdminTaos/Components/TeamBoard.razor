@@ -202,7 +202,11 @@ else
         {
             var feuilles = (await Data.GetTimesheetsAsync()).ToDictionary(t => t.AssignmentId);
             foreach (var m in _team)
-                await ShiftSync.ApplyAsync(Data, m.Asg, feuilles.GetValueOrDefault(m.Asg.Id));
+            {
+                var ts = feuilles.GetValueOrDefault(m.Asg.Id);
+                if (!await ShiftOps.FermerAutoSiNecessaireAsync(Data, m.Asg, ts, Event))
+                    await ShiftSync.ApplyAsync(Data, m.Asg, ts);
+            }
         }
         catch
         {

@@ -28,7 +28,11 @@
         {
             var ts = await Data.GetTimesheetForAssignmentAsync(a.Id);
             var ev = events.FirstOrDefault(e => e.Id == a.EventId);
-            if (ts is not null && ev is not null) _rows.Add((ts, ev));
+            if (ts is null || ev is null) continue;
+            // Seul écran du collaborateur qui regarde ses events passés : c'est donc ici qu'un
+            // service oublié se referme de son côté. L'accueil ne liste que les events à venir.
+            await ShiftOps.FermerAutoSiNecessaireAsync(Data, a, ts, ev);
+            _rows.Add((ts, ev));
         }
         _rows = _rows.OrderByDescending(r => r.ev.Date).ToList();
     }

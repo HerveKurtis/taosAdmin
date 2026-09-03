@@ -38,6 +38,9 @@
             var a = asgs.FirstOrDefault(x => x.Id == t.AssignmentId);
             var ev = a is null ? null : events.FirstOrDefault(e => e.Id == a.EventId);
             if (a is null || ev is null) continue;
+            // Cet écran charge déjà tout : c'est lui qui referme l'historique entier des
+            // services oubliés, sans que l'admin ait le moindre geste à faire.
+            await ShiftOps.FermerAutoSiNecessaireAsync(Data, a, t, ev);
             _rows.Add((t, ev, accs.GetValueOrDefault(a.AccountId, "?")));
         }
         _rows = _rows.OrderByDescending(r => r.ev.Date).ToList();

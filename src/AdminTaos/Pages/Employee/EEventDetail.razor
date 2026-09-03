@@ -87,7 +87,8 @@ else
         if (_asg is not null)
         {
             _ts = await Data.GetTimesheetForAssignmentAsync(_asg.Id);
-            await ShiftSync.ApplyAsync(Data, _asg, _ts);
+            if (_e is null || !await ShiftOps.FermerAutoSiNecessaireAsync(Data, _asg, _ts, _e))
+                await ShiftSync.ApplyAsync(Data, _asg, _ts);
         }
     }
     string RoleName(string id) => _roles.GetValueOrDefault(id, "?");

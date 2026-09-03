@@ -33,6 +33,11 @@ else
         {
             <div class="field"><span>Arrêté par</span><b>@Nom(_ts.EndedByAccountId)</b></div>
         }
+        @if (_ts.AutoClosed)
+        {
+            <div class="field"><span>Arrêté automatiquement</span>
+                <b>Faute d'arrêt, 8 h après la fin de l'event</b></div>
+        }
     </div>
 
     <div class="lab">Pauses</div>

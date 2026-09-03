@@ -27,6 +27,10 @@ public class Timesheet
     /// <summary>Qui a arrêté ce service, si ce n'est pas la personne elle-même.</summary>
     public string? EndedByAccountId { get; set; }
 
+    /// <summary>Fermée faute d'arrêt, huit heures après la fin de l'event. Ces heures n'ont été
+    /// déclarées par personne : l'admin doit pouvoir les distinguer avant de valider une paie.</summary>
+    public bool AutoClosed { get; set; }
+
     public DateTime? EffectiveStart => ManagerAdjustedStart ?? StartedAt;
     public DateTime? EffectiveEnd => ManagerAdjustedEnd ?? EndedAt;
 

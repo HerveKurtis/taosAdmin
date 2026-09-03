@@ -16,6 +16,40 @@ public static class ShiftOps
     /// <summary>Au-delà, le responsable du jour perd la main : seul l'admin corrige encore.</summary>
     public static readonly TimeSpan FenetreResponsable = TimeSpan.FromHours(48);
 
+    /// <summary>Au-delà, un service resté ouvert se referme de lui-même.</summary>
+    public static readonly TimeSpan DelaiFermetureAuto = TimeSpan.FromHours(8);
+
+    public static bool DoitFermerAuto(Timesheet ts, ServiceEvent e, DateTime now)
+        => ts.StartedAt is not null
+           && ts.EndedAt is null
+           && now > e.EndInstant() + DelaiFermetureAuto;
+
+    /// <summary>
+    /// Referme un service oublié à l'heure de fin de l'event. L'application n'a aucun serveur
+    /// qui tourne : la fermeture s'applique dès qu'un admin ou l'intéressé consulte, ce qui
+    /// suffit — ces heures ne servent qu'au moment où quelqu'un les regarde.
+    /// Retourne vrai si quelque chose a été fermé.
+    /// </summary>
+    public static async Task<bool> FermerAutoSiNecessaireAsync(
+        IDataService data, Assignment a, Timesheet? ts, ServiceEvent e)
+    {
+        if (ts is null || !DoitFermerAuto(ts, e, DateTime.Now)) return false;
+
+        // Quelqu'un qui a démarré après la fin de l'event ne peut pas finir avant d'avoir
+        // commencé : on retient le plus tardif, la durée vaut zéro plutôt qu'un négatif.
+        var fin = e.EndInstant();
+        if (fin < ts.StartedAt!.Value) fin = ts.StartedAt.Value;
+
+        if (ts.OpenBreak is { } ouverte) ouverte.EndedAt = fin;
+        ts.EndedAt = fin;
+        ts.AutoClosed = true;
+        ts.Status = TimesheetStatus.ToSend;
+
+        await data.UpdateTimesheetAsync(ts);
+        await ShiftSync.ApplyAsync(data, a, ts);
+        return true;
+    }
+
     /// <summary>Qui peut piloter les compteurs de l'équipe sur cet event.</summary>
     public static bool CanPilot(Account? viewer, ServiceEvent e) => CanPilotAt(viewer, e, DateTime.Now);
 

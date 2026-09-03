@@ -101,13 +101,34 @@ service cloud.firestore {
       return a.accountId == request.auth.uid;
     }
 
+    // L'event d'une affectation, et le responsable du jour qui y est désigné.
+    function eventOfAssignment(assignmentId) {
+      let a = get(/databases/$(db)/documents/assignments/$(assignmentId)).data;
+      return get(/databases/$(db)/documents/events/$(a.eventId)).data;
+    }
+
+    // Le responsable pilote les compteurs de son équipe, mais pas indéfiniment : passé 48 h
+    // après la fin du service, seul un admin corrige encore. La comparaison s'appuie sur
+    // endsAt, un vrai Timestamp — la date et les horaires sont stockés en texte et les règles
+    // ne savent pas les convertir. Un event antérieur à ce champ reste pilotable : le refuser
+    // condamnerait tout l'historique, et l'admin le complète dès qu'il ouvre la fiche.
+    function isResponsableDansLaFenetre(assignmentId) {
+      let ev = eventOfAssignment(assignmentId);
+      return isEmployee()
+             && ev.responsableAccountId == request.auth.uid
+             && (!('endsAt' in ev) || request.time < ev.endsAt + duration.value(48, 'h'));
+    }
+
     match /timesheets/{id} {
       allow read:   if isManager()
-                    || (isEmployee() && isMyAssignment(resource.data.assignmentId));
+                    || (isEmployee() && (isMyAssignment(resource.data.assignmentId)
+                                         || isResponsableDansLaFenetre(resource.data.assignmentId)));
       allow create: if isManager()
-                    || (isEmployee() && isMyAssignment(request.resource.data.assignmentId));
+                    || (isEmployee() && (isMyAssignment(request.resource.data.assignmentId)
+                                         || isResponsableDansLaFenetre(request.resource.data.assignmentId)));
       allow update: if isManager()
-                    || (isEmployee() && isMyAssignment(resource.data.assignmentId));
+                    || (isEmployee() && (isMyAssignment(resource.data.assignmentId)
+                                         || isResponsableDansLaFenetre(resource.data.assignmentId)));
       allow delete: if isManager();
     }
   }

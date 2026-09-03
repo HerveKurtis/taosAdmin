@@ -24,6 +24,11 @@ else
         }
     </div>
 
+    @if (_verrouille)
+    {
+        <p class="pill wait" style="display:block;margin:12px 0">Passé 48 h après la fin du service, seul un admin peut encore corriger les heures.</p>
+    }
+
     @if (_err is not null) { <p class="pill bad" style="display:block;margin:12px 0">@_err</p> }
 
     @foreach (var group in _team.GroupBy(m => m.RoleId))
@@ -62,6 +67,49 @@ else
                         <span class="m" style="margin-left:8px">depuis @depuis.Fmt()@Ecoule(m.Asg)</span>
                     }
                 </div>
+                @if (_pilote)
+                {
+                    <div class="pilot" style="margin-top:10px">
+                        @if (_saisieHeure == m.Asg.Id)
+                        {
+                            <div class="field">
+                                <span>Heure de début</span>
+                                <input class="pilot-start-time" type="time"
+                                       value="@_heure.ToString("HH\\:mm")" @onchange="OnHeure" />
+                            </div>
+                            <div class="row2" style="margin-top:8px">
+                                <button class="btn ghost" @onclick="() => _saisieHeure = null">Annuler</button>
+                                <button class="btn primary pilot-start-confirm"
+                                        @onclick="() => Demarrer(m.Asg)">Démarrer</button>
+                            </div>
+                        }
+                        else if (m.Asg.Shift == ShiftState.NotStarted)
+                        {
+                            @if (ShiftOps.CanStart(m.Asg))
+                            {
+                                <button class="btn ghost pilot-start" @onclick="() => OuvrirSaisie(m.Asg)">Démarrer son service</button>
+                            }
+                            else
+                            {
+                                <div class="m">Marqué absent. Repasse-le présent s'il est finalement arrivé.</div>
+                            }
+                        }
+                        else if (m.Asg.Shift == ShiftState.InService)
+                        {
+                            <div class="row2">
+                                <button class="btn ghost pilot-pause" @onclick="() => Piloter(m.Asg, Geste.Pause)">Mettre en pause</button>
+                                <button class="btn ghost pilot-finish" @onclick="() => Piloter(m.Asg, Geste.Fin)">Terminer</button>
+                            </div>
+                        }
+                        else if (m.Asg.Shift == ShiftState.OnBreak)
+                        {
+                            <div class="row2">
+                                <button class="btn ghost pilot-resume" @onclick="() => Piloter(m.Asg, Geste.Reprise)">Reprendre</button>
+                                <button class="btn ghost pilot-finish" @onclick="() => Piloter(m.Asg, Geste.Fin)">Terminer</button>
+                            </div>
+                        }
+                    </div>
+                }
                 @if (RowAction is not null)
                 {
                     <div style="margin-top:10px">@RowAction(m.Asg)</div>
@@ -91,6 +139,13 @@ else
     Dictionary<string,Profile> _profiles = new();
     bool _loading = true;
     string? _err;
+
+    enum Geste { Pause, Reprise, Fin }
+
+    bool _pilote;        // l'utilisateur peut agir sur les compteurs de l'équipe
+    bool _verrouille;    // responsable au-delà de la fenêtre de 48 h
+    string? _saisieHeure;
+    TimeOnly _heure;
     System.Threading.Timer? _refresh;
 
     protected override async Task OnInitializedAsync()
@@ -100,6 +155,10 @@ else
         // On lit /profiles et jamais /accounts : un responsable non-admin n'a pas le droit de
         // lire les comptes, et une requête refusée échoue en entier — le tableau serait vide.
         _profiles = (await Data.GetProfilesAsync()).ToDictionary(p => p.Id);
+
+        var moi = Auth.CurrentUser;
+        _pilote = ShiftOps.CanPilot(moi, Event);
+        _verrouille = !_pilote && moi is not null && moi.Id == Event.ResponsableAccountId;
 
         await RefreshAsync();
         await ReconcileAsync();
@@ -148,6 +207,61 @@ else
         catch
         {
             // La réparation est un confort : son échec ne doit pas vider l'écran du responsable.
+        }
+    }
+
+    // TryParse explicite plutôt que @bind : la liaison de TimeOnly sur un input time laisse
+    // passer une saisie non reconnue sans rien dire, et l'ancienne valeur part en base.
+    void OnHeure(ChangeEventArgs e)
+    { if (TimeOnly.TryParse(e.Value?.ToString(), out var t)) _heure = t; }
+
+    void OuvrirSaisie(Assignment a)
+    {
+        _err = null;
+        _saisieHeure = a.Id;
+        _heure = TimeOnly.FromDateTime(DateTime.Now);   // proposée, et modifiable
+    }
+
+    /// <summary>
+    /// Démarre le service de quelqu'un à l'heure saisie. L'heure passée est le cas normal :
+    /// on s'aperçoit à 19h30 que la personne a commencé à 17h et n'a rien lancé.
+    /// </summary>
+    async Task Demarrer(Assignment a)
+    {
+        _err = null;
+        try
+        {
+            var debut = ShiftOps.InstantDansLeService(_heure, Event);
+            await ShiftOps.StartAsync(Data, a, debut, Auth.CurrentUser?.Id);
+            _saisieHeure = null;
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            _err = $"Échec du démarrage : {ex.Message}";
+        }
+    }
+
+    async Task Piloter(Assignment a, Geste geste)
+    {
+        _err = null;
+        try
+        {
+            var ts = await Data.GetTimesheetForAssignmentAsync(a.Id);
+            if (ts is null) { _err = "Aucune feuille d'heures pour cette personne."; return; }
+
+            var par = Auth.CurrentUser?.Id;
+            switch (geste)
+            {
+                case Geste.Pause:   await ShiftOps.PauseAsync(Data, a, ts, par); break;
+                case Geste.Reprise: await ShiftOps.ResumeAsync(Data, a, ts, par); break;
+                case Geste.Fin:     await ShiftOps.FinishAsync(Data, a, ts, par); break;
+            }
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            _err = $"Échec de l'opération : {ex.Message}";
         }
     }
 

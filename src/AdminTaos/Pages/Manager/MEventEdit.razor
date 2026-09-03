@@ -152,6 +152,9 @@ else
     {
         if (string.IsNullOrWhiteSpace(_e.Name)) { _err = true; return; }
         _e.Date = _date; _e.MeetingTime = _meet; _e.ExpectedEndTime = _end;
+        // Horodatage lisible par les règles Firestore : elles ne savent pas convertir la date
+        // et l'heure stockées en texte, et c'est lui qui rend le verrou 48 h opposable.
+        _e.EndsAt = _e.EndInstant();
         if (_isNew) await Data.CreateEventAsync(_e);
         else await Data.UpdateEventAsync(_e);
         Nav.NavigateTo("m/events");

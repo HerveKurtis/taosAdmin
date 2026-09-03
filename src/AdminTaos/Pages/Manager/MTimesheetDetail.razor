@@ -25,6 +25,14 @@ else
             <input type="time" value="@_end.ToString("HH\\:mm")" @onchange="OnEnd" /></div>
         <div class="field"><span>Durée</span><b style="color:var(--gold)">@Dur()</b></div>
         <div class="field"><span>Statut</span><b><span class="@_ts.Status.PillClass()">@_ts.Status.StatusFr()</span></b></div>
+        @if (_ts.StartedByAccountId is not null)
+        {
+            <div class="field"><span>Démarré par</span><b>@Nom(_ts.StartedByAccountId)</b></div>
+        }
+        @if (_ts.EndedByAccountId is not null)
+        {
+            <div class="field"><span>Arrêté par</span><b>@Nom(_ts.EndedByAccountId)</b></div>
+        }
     </div>
 
     <div class="lab">Pauses</div>
@@ -39,7 +47,7 @@ else
             {
                 <div class="field ts-break">
                     <span>@b.StartedAt.Fmt() → @b.EndedAt.Fmt()</span>
-                    <b>@(b.Duration is { } d ? d.FmtShort() : "en cours")</b>
+                    <b>@(b.Duration is { } d ? d.FmtShort() : "en cours")@Auteur(b.StartedByAccountId)</b>
                 </div>
             }
             <div class="field"><span>Total pointé</span><b>@_ts.RecordedBreak.FmtShort()</b></div>
@@ -66,6 +74,7 @@ else
 @code {
     [Parameter] public string Id { get; set; } = "";
     Timesheet? _ts;
+    Dictionary<string,string> _noms = new();
     string _who = "", _role = "", _eventName = "", _reason = "";
     DateOnly _eventDate;
     DateTime _start, _end;
@@ -76,6 +85,7 @@ else
     {
         _ts = await Data.GetTimesheetAsync(Id);
         if (_ts is null) return;
+        _noms = (await Data.GetAccountsAsync()).ToDictionary(a => a.Id, a => a.FullName);
         var asg = (await Data.GetAssignmentsAsync()).FirstOrDefault(a => a.Id == _ts.AssignmentId);
         if (asg is not null)
         {
@@ -90,6 +100,12 @@ else
         _reason = _ts.RejectionReason ?? "";
         _breakMinutes = (int)Math.Round(_ts.EffectiveBreak.TotalMinutes);
     }
+
+    /// <summary>Une timesheet n'est plus forcément une déclaration personnelle : dire qui a
+    /// saisi quoi est ce qui permet de trancher un litige de paie.</summary>
+    string Nom(string? id) => id is null ? "" : _noms.GetValueOrDefault(id, "compte supprimé");
+
+    string Auteur(string? id) => id is null ? "" : $" · par {Nom(id)}";
 
     void OnStart(ChangeEventArgs e)
     { if (TimeOnly.TryParse(e.Value?.ToString(), out var t)) _start = _start.Date + t.ToTimeSpan(); }

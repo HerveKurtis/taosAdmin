@@ -56,8 +56,6 @@
         }
     }
 
-    Task SyncShift() => _asg is null ? Task.CompletedTask : ShiftSync.ApplyAsync(Data, _asg, _ts);
-
     /// <summary>Temps presté à cet instant. Pendant une pause il est figé à l'entrée en pause.</summary>
     TimeSpan WorkedSoFar()
     {
@@ -66,31 +64,20 @@
         return worked < TimeSpan.Zero ? TimeSpan.Zero : worked;
     }
 
+    // by: null — la personne agit sur son propre service, il n'y a pas d'auteur tiers à tracer.
     async Task StartBreak()
     {
-        if (_ts!.IsOnBreak) return;
-        _ts.Breaks.Add(new ShiftBreak { StartedAt = DateTime.Now });
-        await Data.UpdateTimesheetAsync(_ts);
-        await SyncShift();
+        if (_asg is { } a && _ts is { } ts) await ShiftOps.PauseAsync(Data, a, ts, by: null);
     }
 
     async Task ResumeShift()
     {
-        if (_ts!.OpenBreak is not { } open) return;
-        open.EndedAt = DateTime.Now;
-        await Data.UpdateTimesheetAsync(_ts);
-        await SyncShift();
+        if (_asg is { } a && _ts is { } ts) await ShiftOps.ResumeAsync(Data, a, ts, by: null);
     }
 
     async Task Finish()
     {
-        var end = DateTime.Now;
-        // Terminer pendant une pause la referme à l'heure de fin : personne ne reste en pause.
-        if (_ts!.OpenBreak is { } open) open.EndedAt = end;
-        _ts.EndedAt = end;
-        _ts.Status = TimesheetStatus.ToSend;
-        await Data.UpdateTimesheetAsync(_ts);
-        await SyncShift();
+        if (_asg is { } a && _ts is { } ts) await ShiftOps.FinishAsync(Data, a, ts, by: null);
         Nav.NavigateTo($"e/events/{Id}/recap");
     }
 }

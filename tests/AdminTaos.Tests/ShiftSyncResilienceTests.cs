@@ -46,7 +46,15 @@ public class ShiftSyncResilienceTests : BunitContext
         Services.AddSingleton<IDataService>(db);
         Services.AddSingleton(auth);
 
-        // evt-today : Marc y est confirmé et peut démarrer le jour même.
+        // Un event en cours quelle que soit l'heure du test : s'appuyer sur celui du jeu de
+        // démonstration rendait ce test dépendant de l'heure à laquelle il tourne.
+        var e = await db.CreateEventAsync(new ServiceEvent {
+            Id = "evt-now", Name = "Service", Date = DateOnly.FromDateTime(DateTime.Today),
+            MeetingTime = new TimeOnly(0, 0), ExpectedEndTime = new TimeOnly(23, 59) });
+        await db.CreateAssignmentAsync(new Assignment {
+            Id = "a-now", EventId = e.Id, AccountId = me.Id,
+            JobRoleId = SeedData.RoleServer, Status = AssignmentStatus.Confirmed });
+
         var cut = Render<AdminTaos.Pages.Employee.EHome>();
         var bouton = cut.FindAll("button").FirstOrDefault(b => b.TextContent.Contains("Commencer mon shift"));
         Assert.NotNull(bouton);
@@ -54,7 +62,7 @@ public class ShiftSyncResilienceTests : BunitContext
         bouton!.Click();
 
         // La timesheet, elle, est bien enregistrée : le service a réellement démarré.
-        var asg = (await db.GetAssignmentsForAccountAsync(me.Id)).First(x => x.EventId == "evt-today");
+        var asg = (await db.GetAssignmentsForAccountAsync(me.Id)).First(x => x.EventId == "evt-now");
         var ts = await db.GetTimesheetForAssignmentAsync(asg.Id);
         Assert.NotNull(ts);
         Assert.NotNull(ts!.StartedAt);

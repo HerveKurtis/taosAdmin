@@ -143,6 +143,14 @@ else
         _responsable = string.IsNullOrEmpty(_e?.ResponsableAccountId)
             ? null
             : await Data.GetAccountAsync(_e.ResponsableAccountId);
+        // Reprise silencieuse des events antérieurs à endsAt : sans lui, le verrou 48 h ne
+        // s'applique pas côté serveur. L'admin est le seul à pouvoir écrire un event.
+        if (_e is not null && _e.EndsAt != _e.EndInstant())
+        {
+            _e.EndsAt = _e.EndInstant();
+            try { await Data.UpdateEventAsync(_e); } catch { /* confort : ne bloque pas la fiche */ }
+        }
+
         _names = (await Data.GetAccountsAsync()).ToDictionary(a => a.Id, a => a.FullName);
         _roles = (await Data.GetJobRolesAsync()).ToDictionary(r => r.Id, r => r.Name);
         var asgs = await Data.GetAssignmentsForEventAsync(Id);

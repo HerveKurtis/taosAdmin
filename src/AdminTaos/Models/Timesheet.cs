@@ -19,6 +19,14 @@ public class Timesheet
     /// <summary>Total de pause retenu par l'admin, en minutes. Null = on garde le pointage réel.</summary>
     public int? ManagerAdjustedBreakMinutes { get; set; }
 
+    /// <summary>Qui a démarré ce service, si ce n'est pas la personne elle-même. Une timesheet
+    /// pouvait auparavant n'être qu'une déclaration personnelle ; elle peut désormais être
+    /// écrite par un responsable ou un admin, et un litige de paie doit pouvoir être tranché.</summary>
+    public string? StartedByAccountId { get; set; }
+
+    /// <summary>Qui a arrêté ce service, si ce n'est pas la personne elle-même.</summary>
+    public string? EndedByAccountId { get; set; }
+
     public DateTime? EffectiveStart => ManagerAdjustedStart ?? StartedAt;
     public DateTime? EffectiveEnd => ManagerAdjustedEnd ?? EndedAt;
 

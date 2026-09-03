@@ -108,10 +108,7 @@ else
 
     async Task Start()
     {
-        _ts ??= await Data.CreateTimesheetAsync(new Timesheet { AssignmentId = _asg!.Id });
-        _ts.StartedAt = DateTime.Now; _ts.Status = TimesheetStatus.InProgress;
-        await Data.UpdateTimesheetAsync(_ts);
-        if (_asg is not null) await ShiftSync.ApplyAsync(Data, _asg, _ts);
+        _ts = await ShiftOps.StartAsync(Data, _asg!, DateTime.Now, by: null);
         Nav.NavigateTo($"e/events/{Id}/active");
     }
 }
